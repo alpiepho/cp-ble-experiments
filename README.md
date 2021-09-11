@@ -22,9 +22,8 @@ Might need:
 https://askubuntu.com/questions/1290037/error-while-installing-rpi-gpio-as-error-command-errored-out-with-exit-status
 
 
-export CFLAGS=-fcommon
-
-pip3 install RPi.GPIO
+export CFLAGS=-fcommon<br>
+pip3 install RPi.GPIO<br>
 
 
 
