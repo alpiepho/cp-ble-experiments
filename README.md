@@ -38,6 +38,13 @@ pip3 install RPi.GPIO<br>
 - https://learn.adafruit.com/circuitpython-ble-libraries-on-any-computer/install-ble-libraries
 
 
-
+- https://learn.adafruit.com/introduction-to-bluetooth-low-energy/gap
+- https://github.com/Ladvien/arduino_ble_sense
+- https://ladvien.com/python-serial-terminal-with-arduino-and-bleak/
+- https://learn.adafruit.com/circuitpython-ble-libraries-on-any-computer/ble-uart-example
+- https://www.bluetooth.com/specifications/assigned-numbers/
+- https://learn.adafruit.com/introduction-to-bluetooth-low-energy/further-information
+- https://bleak.readthedocs.io/en/latest/
+- https://github.com/hbldh/bleak
 
 
