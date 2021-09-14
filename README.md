@@ -16,11 +16,11 @@ will occur to me as I run thru these experiments.
 
 First steps, running thru various demos:
 - Adafruit Learning demos for Feather nRF52840 Express
-    - advertising
-    - button
+    - ble advertising
+    - button_press
+    - neopixel
+    - mobile_movement
     - location
-    - accelerometer
-    - uart
 - Adafruit Learning demos for "BLE Anywhere"
     - uart
 - Bleak library
