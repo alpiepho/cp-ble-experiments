@@ -1,5 +1,47 @@
 
 
+This is a collection of example applications using CircuitPython on both a device (specifically the Adafruit nRF52840, and Circuit Playground Exress), 
+and on a Raspberry PI running Unbuntu, using the Blinka python libraries.  Also want to try the underlying python library, Bleak.
+
+So what is the purpose of doing this?
+
+- Want to learn more about BLE
+- Want to have sample of actually working BLE code for device (peripheral) and host (connect)
+- Think I can create interesting host application to inspect, operate BLE device
+- Think I can create my own mobile app/UI with Flutter
+
+So, I don't have any real goal here, other than learning and adding to my personal toolbox.  With any luck, something real
+will occur to me as I run thru these experiments.
+
+
+First steps, running thru various demos:
+- Adafruit Learning demos for Feather nRF52840 Express
+    - advertising
+    - button
+    - location
+    - accelerometer
+    - uart
+- Adafruit Learning demos for "BLE Anywhere"
+    - uart
+- Bleak library
+    - send
+
+TODO: clean up example descriptions
+
+Followup Project Ideas:
+
+- run motor
+- run proximetry sensor
+- run motion sensor
+- run temp/humidity
+- run I2C display
+- run LED matrix
+
+
+## Files and Directoies
+
+TBD
+
 
 ## Blinka Setup 
 
