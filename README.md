@@ -94,3 +94,4 @@ pip3 install adafruit-circuitpython-ble
 - https://github.com/hbldh/bleak
 
 
+- https://readthedocs.org/projects/adafruit-circuitpython-ble/downloads/pdf/latest/
