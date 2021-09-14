@@ -22,7 +22,8 @@ First steps, running thru various demos:
     - mobile_movement
     - location
 - Adafruit Learning demos for "BLE Anywhere"
-    - uart
+    - uart-board
+    - uart-host
 - Bleak library
     - send
 
@@ -43,7 +44,7 @@ Followup Project Ideas:
 TBD
 
 
-## Blinka Setup 
+## Blinka Setup - General
 
 Setting up Blinka with the following:
 
@@ -68,6 +69,9 @@ export CFLAGS=-fcommon<br>
 pip3 install RPi.GPIO<br>
 
 
+## Blinka Setup - BLE
+
+pip3 install adafruit-circuitpython-ble
 
 
 
