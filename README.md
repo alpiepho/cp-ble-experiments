@@ -62,8 +62,11 @@ Followup Project Ideas:
         - TBD
     - image transfer
         - TBD
+- check ino demo for board exeamples supporting these IOS app pages
+- find playground express demo code
+- test these on playground express
+- review other cp examples for playground express
 
-(check ino demo for board exeamples supporting these IOS app pages)
 
 - run motor
 - run proximetry sensor
@@ -142,3 +145,13 @@ pip3 install adafruit-circuitpython-ble
 
 
 - https://readthedocs.org/projects/adafruit-circuitpython-ble/downloads/pdf/latest/
+
+
+- https://github.com/adafruit/Adafruit_CircuitPython_CircuitPlayground
+- https://learn.adafruit.com/adafruit-circuit-playground-express?view=all#overview
+
+
+Zephyr on nrf52840:<br>
+- https://docs.zephyrproject.org/latest/samples/basic/blinky/README.html#blinky-sample
+- https://github.com/zephyrproject-rtos/zephyr/tree/main/samples
+- https://www.novelbits.io/zephyr-getting-started-bluetooth-low-energy-development/
