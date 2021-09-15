@@ -63,7 +63,7 @@ Followup Project Ideas:
     - image transfer
         - TBD
 - check ino demo for board exeamples supporting these IOS app pages
-- find playground express demo code
+- find playground express demo code (https://github.com/adafruit/Adafruit_CircuitPlayground/tree/master/examples/demo)
 - test these on playground express
 - review other cp examples for playground express
 
