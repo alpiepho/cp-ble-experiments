@@ -31,7 +31,7 @@ First steps, running thru various demos:
 
 Followup Project Ideas:
 
-- create combo of nRF52840 apps
+- [done] create combo of nRF52840 apps
 - extend combo to handle all pages of IOS phone app
     - info
         - rxd
@@ -63,7 +63,7 @@ Followup Project Ideas:
     - image transfer
         - TBD
 - check ino demo for board exeamples supporting these IOS app pages
-- find playground express demo code (https://github.com/adafruit/Adafruit_CircuitPlayground/tree/master/examples/demo)
+- [done] find playground express demo code (https://github.com/adafruit/Adafruit_CircuitPlayground/tree/master/examples/demo)
 - test these on playground express
 - review other cp examples for playground express
 
