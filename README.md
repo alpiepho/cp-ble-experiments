@@ -16,20 +16,54 @@ will occur to me as I run thru these experiments.
 
 First steps, running thru various demos:
 - Adafruit Learning demos for Feather nRF52840 Express
-    - ble advertising
-    - button_press
-    - neopixel
-    - mobile_movement
-    - location
+    - [done] ble advertising
+    - [done] button_press
+    - [done] neopixel
+    - [done] mobile_movement
+    - [done] location
 - Adafruit Learning demos for "BLE Anywhere"
-    - uart-board
-    - uart-host
+    - [done] uart-board
+    - [done] uart-host
 - Bleak library
     - send
 
-TODO: clean up example descriptions
+
 
 Followup Project Ideas:
+
+- create combo of nRF52840 apps
+- extend combo to handle all pages of IOS phone app
+    - info
+        - rxd
+        - client charteristic configuration
+        - txd
+    - uart
+        - text area
+    - plotter
+        - TBD
+    - pin I/O
+        - pin 1, input, Low
+        - ...
+        - scrolling
+    - controller
+        - quaternion
+        - accelerometer
+        - gyro
+        - magnetometer
+        - location
+        - control pad
+            - up, down, left, right
+            - 1 ,2, 3, 4
+        - color picker
+            - send hex (#00FFFF), alpha
+    - AHRS/Calibration
+        - TBD
+    - thermal camera
+        - TBD
+    - image transfer
+        - TBD
+
+(check ino demo for board exeamples supporting these IOS app pages)
 
 - run motor
 - run proximetry sensor
@@ -39,9 +73,22 @@ Followup Project Ideas:
 - run LED matrix
 
 
-## Files and Directoies
+## Files and Directories
 
-TBD
+- feather_nrf52840_express
+    - minimum.py
+    - button_press.py
+    - neopixel.py
+    - mobile_movement.py
+    - location.py
+    - lib
+- uart-board
+    - code.py
+    - lib
+- uart-host
+    - python env
+    - code.py
+
 
 
 ## Blinka Setup - General
