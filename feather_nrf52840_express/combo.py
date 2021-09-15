@@ -83,14 +83,7 @@ while True:
                     print("Longitude", packet.longitude)
                     print("Altitude:", packet.altitude)
             except Exception as err:
-                # try uart
-                s = uart_service.readline()
-                if s:
-                    try:
-                        result = s #str(eval(s))
-                    except Exception as e:
-                        result = repr(e)
-                    uart_service.write(result.encode("utf-8"))
+                print(err)
 
 
     # If we got here, we lost the connection. Go up to the top and start
