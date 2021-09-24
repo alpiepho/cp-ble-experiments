@@ -124,6 +124,59 @@ pip3 install RPi.GPIO<br>
 pip3 install adafruit-circuitpython-ble
 
 
+## A Tale of Too Many Tutorials and Expanded Scope
+
+As I was digging into BLE, specifically with Circuit Python, I kept running into other tutorials and references...thus the really long list at the bottom of this page.  As you will see, I am probably trying to connect too many dots.  (Good thing my boss on this project is ok with it...oh, that's me!)
+
+Each new reference tailed into another.  At some point I was going in circles...and that is why I am documenting the various cases.
+
+I have a couple wants with Bluetooth and BLE: 
+1. I want to "control both ends".  
+1. Also want to "scan my environment and understand what is out there".
+1. Want to gain experience with ZephryOS
+1. Want to incorporate Flutter web-on-Flask
+1. Roll Flutter to IOS?
+1. Roll Flutter to Android? (excuse to by Pixel 6 with support for ML)
+
+<br>
+The following is a table of cases I derived from the varous tutorials, and cases I want to complete toward meeting "Want" number 1.
+
+<br>
+<br>
+
+| Case | BLE "Connect" or Host Side  | BLE Protocol | BLE "Peripheral" or Board Side |
+| :--- | :---  | :--- | :--- |
+| 1 [done] | IPhone / IOS / "BluefruitConnect" App  | No GATT* / Custom "Packet" class  | nRF52840 / CircuitPython / combo.py (from ref apps) |
+| 2 [done] | Ubuntu / Blinka(Bleak) / uart_host.py  | No GATT* / simple UART**  | CircuitPlaygroundExpress / uart_board.py  |
+| 3 [fail] | Ubuntu / Bleak / uart_service.py  | No GATT* / Custom "Packet" class  | nRF52840 / CircuitPython / combo.py  |
+| 4 [tbd] | Ubuntu / Bleak / uart_service.py  | No GATT* / Custom "Packet" class  | nRF52840 / CircuitPython / combo.py |
+| 5 [tbd] | Ubuntu / Bleak / python, Flask, Flutter?  | No GATT* / Custom "Packet" class  | nRF52840 / CircuitPython / combo.py |
+| 10 [tbd] | Ubuntu / Bleak / ??.py  | No GATT* / Custom "Packet" class  | nRF52840 / ZephyrOS / ?? code |
+
+
+Notes:
+- "Connect" is Bluetooth term for Host vs. Peripheral, or Client vs. Server.  It drives the discover.
+- "Peripheral" is a Bluetooth term for Peripheral vs. Host, or Server vs. Client.  Typically the device that offers a Beacon to be discovered
+- "No GATT*" - It doesn't appear that the Circuit Python library is providing a Beacon with supporte GATT descriptors, but the library could be abstracting that...<b>TODO</b> need to check.
+- "simple UART**" - Not to confused with the Nordic Semiconductor Proprietory UART protocol.
+- "Case 3 [fail] - doesn't full work, Board side gets text, but need host side generation of packets with checksum
+- "Case 4 [tbd] - implement host side generation of packets with checksum if "!" given, maybe add "help" or "?"
+- "Case 10 [tbd]" - Want experience with ZephryOS, tutorials happen to use same Adafruit board, nRF52840
+
+
+
+
+IDEA:
+- think next AdaBox will be the led glasses
+- Use IPhone / IOS / "BluefruitConnect" App to control for scrolling text
+- Use IPhone / IOS / "BluefruitConnect" App to control Scoreboard
+    - "1" use next color for home team
+    - "2" use next color for away team
+    - uart for score text??
+- <b>TODO</b> Fill out details
+
+<br>
+<br>
 
 ## Other References
 
