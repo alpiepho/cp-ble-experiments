@@ -26,107 +26,15 @@ First steps, running thru various demos:
     - [done] uart-host
 - Bleak library
     - send
-
-
-
-Followup Project Ideas:
-
 - [done] create combo of nRF52840 apps
-- extend combo to handle all pages of IOS phone app
-    - info
-        - rxd
-        - client charteristic configuration
-        - txd
-    - uart
-        - text area
-    - plotter
-        - TBD
-    - pin I/O
-        - pin 1, input, Low
-        - ...
-        - scrolling
-    - controller
-        - quaternion
-        - accelerometer
-        - gyro
-        - magnetometer
-        - location
-        - control pad
-            - up, down, left, right
-            - 1 ,2, 3, 4
-        - color picker
-            - send hex (#00FFFF), alpha
-    - AHRS/Calibration
-        - TBD
-    - thermal camera
-        - TBD
-    - image transfer
-        - TBD
-- check ino demo for board exeamples supporting these IOS app pages
 - [done] find playground express demo code (https://github.com/adafruit/Adafruit_CircuitPlayground/tree/master/examples/demo)
-- test these on playground express
-- review other cp examples for playground express
 
+<br>
+<br>
 
-- run motor
-- run proximetry sensor
-- run motion sensor
-- run temp/humidity
-- run I2C display
-- run LED matrix
+# A Tale of Too Many Tutorials and Expanded Scope
 
-
-## Files and Directories
-
-- feather_nrf52840_express
-    - minimum.py
-    - button_press.py
-    - neopixel.py
-    - mobile_movement.py
-    - location.py
-    - lib
-- uart-board
-    - code.py
-    - lib
-- uart-host
-    - python env
-    - code.py
-
-
-
-## Blinka Setup - General
-
-Setting up Blinka with the following:
-
-https://pypi.org/project/Adafruit-Blinka/
-
-
-From page:
-
-To install in a virtual environment in your current project:
-
-mkdir project-name && cd project-name<br>
-python3 -m venv .env<br>
-source .env/bin/activate<br>
-pip3 install Adafruit-Blinka<br>
-
-Might need:
-
-https://askubuntu.com/questions/1290037/error-while-installing-rpi-gpio-as-error-command-errored-out-with-exit-status
-
-
-export CFLAGS=-fcommon<br>
-pip3 install RPi.GPIO<br>
-
-
-## Blinka Setup - BLE
-
-pip3 install adafruit-circuitpython-ble
-
-
-## A Tale of Too Many Tutorials and Expanded Scope
-
-As I was digging into BLE, specifically with Circuit Python, I kept running into other tutorials and references...thus the really long list at the bottom of this page.  As you will see, I am probably trying to connect too many dots.  (Good thing my boss on this project is ok with it...oh, that's me!)
+As I was digging into BLE, specifically with Circuit Python, I kept running into more and more tutorials/references...thus the really long list of references at the bottom of this page.  As you will see, I am probably trying to connect too many dots.  (Good thing my boss on this project is ok with it...oh, that's me!)
 
 Each new reference tailed into another.  At some point I was going in circles...and that is why I am documenting the various cases.
 
@@ -163,22 +71,166 @@ Notes:
 - "Case 4 [tbd] - implement host side generation of packets with checksum if "!" given, maybe add "help" or "?"
 - "Case 10 [tbd]" - Want experience with ZephryOS, tutorials happen to use same Adafruit board, nRF52840
 
+So with this <b>NEW</b> goal, the following sections will try to reference back to these cases where possible.  
+
+<br>
+<br>
+
+## CASE 1: CircuitPython / combo.py
+
+Following the tutorial at: https://learn.adafruit.com/circuitpython-nrf52840/bluefruit-le-connect-basics
+
+The source for this is scattered thru the tutorial.  I pulled these into files in the directory `feather_nrf52840_express`, and then merged then into `combo.py`.
+
+The IOS App has more functions than are discussed in this demo.  I suspect that the IOS was built to test several BLE boards, but I have not found those on the
+AdaFruit site.
 
 
+<br>
+<br>
 
-IDEA:
+## CASE 2: Blinka Setup
+
+Setting up Blinka with the following: https://pypi.org/project/Adafruit-Blinka/.  Uses files in `uart-board` and `uart-host`.
+
+To install in a virtual environment in your current project:
+```
+mkdir project-name && cd project-name
+python3 -m venv .env
+source .env/bin/activate
+pip3 install Adafruit-Blinka
+```
+
+Might need: 
+https://askubuntu.com/questions/1290037/error-while-installing-rpi-gpio-as-error-command-errored-out-with-exit-status
+
+```
+export CFLAGS=-fcommon
+pip3 install RPi.GPIO
+```
+
+Blinka Setup - BLE
+```
+pip3 install adafruit-circuitpython-ble
+```
+
+<br>
+<br>
+
+## CASE 3: Bleak / uart_service.py
+
+Followed installation from https://bleak.readthedocs.io/en/latest/.
+
+Using `uart_service.py` from https://github.com/hbldh/bleak/tree/develop/examples.
+
+This partially works with CircuitPython/combo.py as the Board side.  The Board side can see characters, but since it is trying to form Packets from the characters along with a checksum, each Packet is failing.
+The plan for Case 4 is to create a modified `uart_service.py` that recodnizes when user input as packets and form the Packet stream properly.
+
+<br>
+<br>
+
+## CASE 4: Bleak / uart_service2.py
+
+<b>TBD</b>
+
+<br>
+<br>
+
+## CASE 5: Bleak / python, Flask, Flutter?
+
+Excuse to keep up with Flask on the backend and Flutter on the frontend???
+
+<b>TBD</b>
+
+<br>
+<br>
+
+## CASE 10: nRF52840 / ZephyrOS / ?? code
+
+Excuse to learn ZephyrOS on same hardware used by Circuit Python???
+
+<b>TBD</b>
+
+<br>
+<br>
+
+## Files and Directories
+
+- feather_nrf52840_express
+    - minimum.py
+    - button_press.py
+    - neopixel.py
+    - mobile_movement.py
+    - location.py
+    - lib
+- uart-board
+    - code.py
+    - lib
+- uart-host
+    - python env
+    - code.py
+- uart_service.py
+
+
+<br>
+<br>
+
+## Followup Project Ideas:
+
+- extend combo to handle all pages of IOS phone app
+    - info
+        - rxd
+        - client charteristic configuration
+        - txd
+    - uart
+        - text area
+    - plotter
+        - TBD
+    - pin I/O
+        - pin 1, input, Low
+        - ...
+        - scrolling
+    - controller
+        - quaternion
+        - accelerometer
+        - gyro
+        - magnetometer
+        - location
+        - control pad
+            - up, down, left, right
+            - 1 ,2, 3, 4
+        - color picker
+            - send hex (#00FFFF), alpha
+    - AHRS/Calibration
+        - TBD
+    - thermal camera
+        - TBD
+    - image transfer
+        - TBD
+- check ino demo for board exeamples supporting these IOS app pages
+- test these on playground express
+- review other cp examples for playground express
+
+- Run various components I have in-hand:
+    - run motor
+    - run proximetry sensor
+    - run motion sensor
+    - run temp/humidity
+    - run I2C display
+    - run LED matrix
+
 - think next AdaBox will be the led glasses
-- Use IPhone / IOS / "BluefruitConnect" App to control for scrolling text
-- Use IPhone / IOS / "BluefruitConnect" App to control Scoreboard
-    - "1" use next color for home team
-    - "2" use next color for away team
-    - uart for score text??
-- <b>TODO</b> Fill out details
+    - Use IPhone / IOS / "BluefruitConnect" App to control for scrolling text
+    - Use IPhone / IOS / "BluefruitConnect" App to control Scoreboard
+        - "1" use next color for home team
+        - "2" use next color for away team
+        - uart for score text??
+    - <b>TODO</b> Fill out details
 
 <br>
 <br>
 
-## Other References
+## References
 
 - https://pypi.org/project/Adafruit-Blinka/
 - https://learn.adafruit.com/circuitpython-nrf52840/bluefruit-le-connect-basics
