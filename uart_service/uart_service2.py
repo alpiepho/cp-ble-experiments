@@ -23,6 +23,17 @@ UART_TX_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 UART_SAFE_SIZE = 20
 
 
+def checksum(partial_packet):
+    """Compute checksum for bytes, not including the checksum byte itself."""
+    return ~sum(partial_packet) & 0xFF
+
+def add_checksum(partial_packet):
+    """Compute the checksum of partial_packet and return a new bytes
+    with the checksum appended.
+    """
+    partial_packet = partial_packet[:-1]
+    return partial_packet + bytes((checksum(partial_packet),))
+
 async def uart_terminal():
     """This is a simple "terminal" program that uses the Nordic Semiconductor
     (nRF) UART service. It reads from stdin and sends each line of data to the
@@ -69,6 +80,18 @@ async def uart_terminal():
             # some devices, like devices running MicroPython, expect Windows
             # line endings (uncomment line below if needed)
             # data = data.replace(b"\n", b"\r\n")
+
+            # look for packet format
+            # button: !B00
+            # color - 
+            # b = ButtonPacket()
+            # data = b.to_bytes(bytes["1", "1"])
+            print(type(data))
+            if data[0] == 33: # "!"
+                print("in if")
+                data = add_checksum(data)
+            print(data)
+
 
             await client.write_gatt_char(UART_RX_CHAR_UUID, data)
             print("sent:", data)

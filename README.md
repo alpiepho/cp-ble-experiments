@@ -126,6 +126,12 @@ Using `uart_service.py` from https://github.com/hbldh/bleak/tree/develop/example
 This partially works with CircuitPython/combo.py as the Board side.  The Board side can see characters, but since it is trying to form Packets from the characters along with a checksum, each Packet is failing.
 The plan for Case 4 is to create a modified `uart_service.py` that recodnizes when user input as packets and form the Packet stream properly.
 
+### Bleak Setup - General
+
+mkdir project-name && cd project-name<br>
+python3 -m venv .env<br>
+source .env/bin/activate<br>
+pip3 install bleak<br>
 <br>
 <br>
 
