@@ -14,6 +14,13 @@ from bleak import BleakScanner, BleakClient
 from bleak.backends.scanner import AdvertisementData
 from bleak.backends.device import BLEDevice
 
+# from adafruit_bluefruit_connect.button_packet import ButtonPacket
+# from adafruit_bluefruit_connect.accelerometer_packet import AccelerometerPacket
+# from adafruit_bluefruit_connect.gyro_packet import GyroPacket
+# from adafruit_bluefruit_connect.location_packet import LocationPacket
+# from adafruit_bluefruit_connect.magnetometer_packet import MagnetometerPacket
+# from adafruit_bluefruit_connect.quaternion_packet import QuaternionPacket
+
 UART_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 UART_RX_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 UART_TX_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
@@ -21,6 +28,14 @@ UART_TX_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 # All BLE devices have MTU of at least 23. Subtracting 3 bytes overhead, we can
 # safely send 20 bytes at a time to any device supporting this service.
 UART_SAFE_SIZE = 20
+
+
+    # def to_bytes(self):
+    #     """Return the bytes needed to send this packet."""
+    #     partial_packet = struct.pack(
+    #         self._FMT_CONSTRUCT, self._TYPE_HEADER, self._x, self._y, self._z, self._w
+    #     )
+    #     return partial_packet + self.checksum(partial_packet)
 
 
 def checksum(partial_packet):
@@ -33,6 +48,10 @@ def add_checksum(partial_packet):
     """
     partial_packet = partial_packet[:-1]
     return partial_packet + bytes((checksum(partial_packet),))
+
+
+
+
 
 async def uart_terminal():
     """This is a simple "terminal" program that uses the Nordic Semiconductor
@@ -82,14 +101,29 @@ async def uart_terminal():
             # data = data.replace(b"\n", b"\r\n")
 
             # look for packet format
-            # button: !B00
-            # color - 
-            # b = ButtonPacket()
-            # data = b.to_bytes(bytes["1", "1"])
-            print(type(data))
             if data[0] == 33: # "!"
-                print("in if")
-                data = add_checksum(data)
+                print data[1]
+                if data[1] == 'H' or data[1] == 'h' or data[1] == '?':
+                    print "Supported operations:"
+                    print "!A x y z                         - send AccelerometerPacket, x, y, z float values"
+                    print "!B button press                  - send ButtonPacket, integer, 0/1"
+                    print "!G x y z                         - send GyroPacket, x, y, z float values"
+                    print "!L latitude, longitude, altitude - send LocationPacket, x, y, z float values"
+                    print "!M x y z,                        - send LocationPacket, x, y, z float values"
+                    print "!Q x y z w                       - send LocationPacket,  x, y, z, w float values"
+                elif data[1] == 'A':
+                    pass
+                elif data[1] == 'B':
+                    data = data.replace(" ", "")
+                    data = add_checksum(data)
+                elif data[1] == 'G':
+                    pass
+                elif data[1] == 'L':
+                    pass
+                elif data[1] == 'M':
+                    pass
+                elif data[1] == 'Q':
+                    pass
             print(data)
 
 
