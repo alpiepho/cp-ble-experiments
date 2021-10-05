@@ -30,29 +30,9 @@ UART_TX_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 UART_SAFE_SIZE = 20
 
 
-    # def to_bytes(self):
-    #     """Return the bytes needed to send this packet."""
-    #     partial_packet = struct.pack(
-    #         self._FMT_CONSTRUCT, self._TYPE_HEADER, self._x, self._y, self._z, self._w
-    #     )
-    #     return partial_packet + self.checksum(partial_packet)
-
-
 def checksum(partial_packet):
     """Compute checksum for bytes, not including the checksum byte itself."""
     return ~sum(partial_packet) & 0xFF
-
-def add_checksum(partial_packet):
-    """Compute the checksum of partial_packet and return a new bytes
-    with the checksum appended.
-    """
-    partial_packet = partial_packet[:-1]
-    print("add_checksum")
-    print(partial_packet)
-    return partial_packet + bytes((checksum(partial_packet),))
-
-
-
 
 
 async def uart_terminal():
@@ -103,42 +83,76 @@ async def uart_terminal():
             # data = data.replace(b"\n", b"\r\n")
 
             # look for packet format
-            if data[0] == 33: # "!"
-                print(data[1])
-                print(type(data[1]))
-                print(chr(data[1]))
-                letter = chr(data[1])
-                print(letter)
-                if letter == 'H' or letter == 'h' or letter == '?':
-                    print("Supported operations:")
-                    print("!A x y z                         - send AccelerometerPacket, x, y, z float values")
-                    print("!B button press                  - send ButtonPacket, integer, 0/1")
-                    print("!G x y z                         - send GyroPacket, x, y, z float values")
-                    print("!L latitude, longitude, altitude - send LocationPacket, x, y, z float values")
-                    print("!M x y z,                        - send LocationPacket, x, y, z float values")
-                    print("!Q x y z w                       - send LocationPacket,  x, y, z, w float values")
-                elif letter == 'A':
-                    pass
-                elif letter == 'B':
-                    print("1")
-                    print(type(data))
-                    #data = data.replace(" ", "")
-                    print("2")
-                    data = add_checksum(data)
-                    print("3")
-                elif letter == 'G':
-                    pass
-                elif letter == 'L':
-                    pass
-                elif letter == 'M':
-                    pass
-                elif letter == 'Q':
-                    pass
-            print(len(data))
+            try:
+                sdata = data.decode("utf-8") 
+                if sdata[0] == '!':
+                    letter = sdata[1]
+                    print(letter)
+                    if letter == 'H' or letter == 'h' or letter == '?':
+                        print("Supported operations:")
+                        print("!A x y z                         - send AccelerometerPacket, x, y, z float values")
+                        print("!B button press                  - send ButtonPacket, integer, 0/1")
+                        print("!G x y z                         - send GyroPacket, x, y, z float values")
+                        print("!L latitude, longitude, altitude - send LocationPacket, x, y, z float values")
+                        print("!M x y z,                        - send LocationPacket, x, y, z float values")
+                        print("!Q x y z w                       - send LocationPacket,  x, y, z, w float values")
+                    elif letter == 'A':
+                        parts = sdata.split()
+                        x = float(parts[1])
+                        y = float(parts[2])
+                        z = float(parts[3])
+                        partial_packet = struct.pack(
+                            "<2sfff", b"!A", x, y, z
+                        )
+                        data = partial_packet + checksum(partial_packet)
+                    elif letter == 'B':
+                        parts = sdata.split()
+                        partial_packet = struct.pack(
+                            "<2sss", b"!B", parts[1], parts[2]
+                        )
+                        data = partial_packet + checksum(partial_packet)
+                    elif letter == 'G':
+                        parts = sdata.split()
+                        x = float(parts[1])
+                        y = float(parts[2])
+                        z = float(parts[3])
+                        partial_packet = struct.pack(
+                            "<2sfff", b"!G", x, y, z
+                        )
+                        data = partial_packet + checksum(partial_packet)
+                    elif letter == 'L':
+                        parts = sdata.split()
+                        x = float(parts[1])
+                        y = float(parts[2])
+                        z = float(parts[3])
+                        partial_packet = struct.pack(
+                            "<2sfff", b"!L", x, y, z
+                        )
+                        data = partial_packet + checksum(partial_packet)
+                    elif letter == 'M':
+                        parts = sdata.split()
+                        x = float(parts[1])
+                        y = float(parts[2])
+                        z = float(parts[3])
+                        partial_packet = struct.pack(
+                            "<2sfff", b"!M", x, y, z
+                        )
+                        data = partial_packet + checksum(partial_packet)
+                    elif letter == 'Q':
+                        parts = sdata.split()
+                        x = float(parts[1])
+                        y = float(parts[2])
+                        z = float(parts[3])
+                        w = float(parts[4])
+                        partial_packet = struct.pack(
+                            "<2sfff", b"!Q", x, y, z, w
+                        )
+                        data = partial_packet + checksum(partial_packet)
 
-
-            await client.write_gatt_char(UART_RX_CHAR_UUID, data)
-            print("sent:", data)
+                await client.write_gatt_char(UART_RX_CHAR_UUID, data)
+                print("sent:", data)
+            except Exception as error:
+                print(error)
 
 
 # It is important to use asyncio.run() to get proper cleanup on KeyboardInterrupt.

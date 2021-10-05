@@ -82,6 +82,15 @@ while True:
                     print("Latitude:", packet.latitude)
                     print("Longitude", packet.longitude)
                     print("Altitude:", packet.altitude)
+            except ValueError:
+                # assume just a string, try to rewind and get all bytes
+                uart_service.seek(0)
+                if uart_service.in_waiting:
+                    raw_bytes = uart_server.read(uart_server.in_waiting)
+                    text = raw_bytes.decode().strip()
+                    # print("raw bytes =", raw_bytes)
+                    print(text)
+
             except Exception as err:
                 print(err)
 
