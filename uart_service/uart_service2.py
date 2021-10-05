@@ -47,6 +47,8 @@ def add_checksum(partial_packet):
     with the checksum appended.
     """
     partial_packet = partial_packet[:-1]
+    print("add_checksum")
+    print(partial_packet)
     return partial_packet + bytes((checksum(partial_packet),))
 
 
@@ -102,29 +104,37 @@ async def uart_terminal():
 
             # look for packet format
             if data[0] == 33: # "!"
-                print data[1]
-                if data[1] == 'H' or data[1] == 'h' or data[1] == '?':
-                    print "Supported operations:"
-                    print "!A x y z                         - send AccelerometerPacket, x, y, z float values"
-                    print "!B button press                  - send ButtonPacket, integer, 0/1"
-                    print "!G x y z                         - send GyroPacket, x, y, z float values"
-                    print "!L latitude, longitude, altitude - send LocationPacket, x, y, z float values"
-                    print "!M x y z,                        - send LocationPacket, x, y, z float values"
-                    print "!Q x y z w                       - send LocationPacket,  x, y, z, w float values"
-                elif data[1] == 'A':
+                print(data[1])
+                print(type(data[1]))
+                print(chr(data[1]))
+                letter = chr(data[1])
+                print(letter)
+                if letter == 'H' or letter == 'h' or letter == '?':
+                    print("Supported operations:")
+                    print("!A x y z                         - send AccelerometerPacket, x, y, z float values")
+                    print("!B button press                  - send ButtonPacket, integer, 0/1")
+                    print("!G x y z                         - send GyroPacket, x, y, z float values")
+                    print("!L latitude, longitude, altitude - send LocationPacket, x, y, z float values")
+                    print("!M x y z,                        - send LocationPacket, x, y, z float values")
+                    print("!Q x y z w                       - send LocationPacket,  x, y, z, w float values")
+                elif letter == 'A':
                     pass
-                elif data[1] == 'B':
-                    data = data.replace(" ", "")
+                elif letter == 'B':
+                    print("1")
+                    print(type(data))
+                    #data = data.replace(" ", "")
+                    print("2")
                     data = add_checksum(data)
-                elif data[1] == 'G':
+                    print("3")
+                elif letter == 'G':
                     pass
-                elif data[1] == 'L':
+                elif letter == 'L':
                     pass
-                elif data[1] == 'M':
+                elif letter == 'M':
                     pass
-                elif data[1] == 'Q':
+                elif letter == 'Q':
                     pass
-            print(data)
+            print(len(data))
 
 
             await client.write_gatt_char(UART_RX_CHAR_UUID, data)
