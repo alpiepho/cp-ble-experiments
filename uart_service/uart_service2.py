@@ -9,6 +9,9 @@ An example showing how to write a simple program using the Nordic Semiconductor
 
 import asyncio
 import sys
+import struct
+
+import rich
 
 from bleak import BleakScanner, BleakClient
 from bleak.backends.scanner import AdvertisementData
@@ -34,6 +37,11 @@ def checksum(partial_packet):
     """Compute checksum for bytes, not including the checksum byte itself."""
     return ~sum(partial_packet) & 0xFF
 
+def add_checksum(partial_packet):
+        """Compute the checksum of partial_packet and return a new bytes
+        with the checksum appended.
+        """
+        return partial_packet + bytes((checksum(partial_packet),))
 
 async def uart_terminal():
     """This is a simple "terminal" program that uses the Nordic Semiconductor
@@ -87,7 +95,6 @@ async def uart_terminal():
                 sdata = data.decode("utf-8") 
                 if sdata[0] == '!':
                     letter = sdata[1]
-                    print(letter)
                     if letter == 'H' or letter == 'h' or letter == '?':
                         print("Supported operations:")
                         print("!A x y z                         - send AccelerometerPacket, x, y, z float values")
@@ -96,6 +103,7 @@ async def uart_terminal():
                         print("!L latitude, longitude, altitude - send LocationPacket, x, y, z float values")
                         print("!M x y z,                        - send LocationPacket, x, y, z float values")
                         print("!Q x y z w                       - send LocationPacket,  x, y, z, w float values")
+                        continue
                     elif letter == 'A':
                         parts = sdata.split()
                         x = float(parts[1])
@@ -104,13 +112,15 @@ async def uart_terminal():
                         partial_packet = struct.pack(
                             "<2sfff", b"!A", x, y, z
                         )
-                        data = partial_packet + checksum(partial_packet)
+                        data = add_checksum(partial_packet)
                     elif letter == 'B':
                         parts = sdata.split()
                         partial_packet = struct.pack(
-                            "<2sss", b"!B", parts[1], parts[2]
+                            b"<2sss", b"!B", 
+                            bytes(parts[1], "utf-8"), 
+                            bytes(parts[2], "utf-8")
                         )
-                        data = partial_packet + checksum(partial_packet)
+                        data = add_checksum(partial_packet)
                     elif letter == 'G':
                         parts = sdata.split()
                         x = float(parts[1])
@@ -119,7 +129,7 @@ async def uart_terminal():
                         partial_packet = struct.pack(
                             "<2sfff", b"!G", x, y, z
                         )
-                        data = partial_packet + checksum(partial_packet)
+                        data = add_checksum(partial_packet)
                     elif letter == 'L':
                         parts = sdata.split()
                         x = float(parts[1])
@@ -128,7 +138,7 @@ async def uart_terminal():
                         partial_packet = struct.pack(
                             "<2sfff", b"!L", x, y, z
                         )
-                        data = partial_packet + checksum(partial_packet)
+                        data = add_checksum(partial_packet)
                     elif letter == 'M':
                         parts = sdata.split()
                         x = float(parts[1])
@@ -137,7 +147,7 @@ async def uart_terminal():
                         partial_packet = struct.pack(
                             "<2sfff", b"!M", x, y, z
                         )
-                        data = partial_packet + checksum(partial_packet)
+                        data = add_checksum(partial_packet)
                     elif letter == 'Q':
                         parts = sdata.split()
                         x = float(parts[1])
@@ -147,8 +157,9 @@ async def uart_terminal():
                         partial_packet = struct.pack(
                             "<2sfff", b"!Q", x, y, z, w
                         )
-                        data = partial_packet + checksum(partial_packet)
+                        data = add_checksum(partial_packet)
 
+                rich.inspect(client)
                 await client.write_gatt_char(UART_RX_CHAR_UUID, data)
                 print("sent:", data)
             except Exception as error:
