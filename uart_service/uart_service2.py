@@ -11,18 +11,11 @@ import asyncio
 import sys
 import struct
 
-import rich
+# import rich
 
 from bleak import BleakScanner, BleakClient
 from bleak.backends.scanner import AdvertisementData
 from bleak.backends.device import BLEDevice
-
-# from adafruit_bluefruit_connect.button_packet import ButtonPacket
-# from adafruit_bluefruit_connect.accelerometer_packet import AccelerometerPacket
-# from adafruit_bluefruit_connect.gyro_packet import GyroPacket
-# from adafruit_bluefruit_connect.location_packet import LocationPacket
-# from adafruit_bluefruit_connect.magnetometer_packet import MagnetometerPacket
-# from adafruit_bluefruit_connect.quaternion_packet import QuaternionPacket
 
 UART_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 UART_RX_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
@@ -32,7 +25,8 @@ UART_TX_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 # safely send 20 bytes at a time to any device supporting this service.
 UART_SAFE_SIZE = 20
 
-
+# Copied part of:
+# from adafruit_bluefruit_connect.packet import Packet
 def checksum(partial_packet):
     """Compute checksum for bytes, not including the checksum byte itself."""
     return ~sum(partial_packet) & 0xFF
@@ -92,19 +86,25 @@ async def uart_terminal():
 
             # look for packet format
             try:
-                sdata = data.decode("utf-8") 
-                if sdata[0] == '!':
+                sdata = data.decode("utf-8").replace("\n", "") 
+                if sdata == "quit" or sdata == "exit":
+                    print("exiting...")
+                    break
+                elif sdata == "help" or sdata == "?":
+                    print("Supported operations:")
+                    print("!A x y z                         - send AccelerometerPacket, x, y, z float values")
+                    print("!B button press                  - send ButtonPacket, integer, 0/1")
+                    print("!G x y z                         - send GyroPacket, x, y, z float values")
+                    print("!L latitude, longitude, altitude - send LocationPacket, x, y, z float values")
+                    print("!M x y z,                        - send LocationPacket, x, y, z float values")
+                    print("!Q x y z w                       - send LocationPacket,  x, y, z, w float values")
+                    print("! some string of text            - send random text (requires '! ' preceding text)")
+                    print()
+                    print("")
+                    continue
+                elif sdata[0] == '!':
                     letter = sdata[1]
-                    if letter == 'H' or letter == 'h' or letter == '?':
-                        print("Supported operations:")
-                        print("!A x y z                         - send AccelerometerPacket, x, y, z float values")
-                        print("!B button press                  - send ButtonPacket, integer, 0/1")
-                        print("!G x y z                         - send GyroPacket, x, y, z float values")
-                        print("!L latitude, longitude, altitude - send LocationPacket, x, y, z float values")
-                        print("!M x y z,                        - send LocationPacket, x, y, z float values")
-                        print("!Q x y z w                       - send LocationPacket,  x, y, z, w float values")
-                        continue
-                    elif letter == 'A':
+                    if letter == 'A':
                         parts = sdata.split()
                         x = float(parts[1])
                         y = float(parts[2])
@@ -155,13 +155,13 @@ async def uart_terminal():
                         z = float(parts[3])
                         w = float(parts[4])
                         partial_packet = struct.pack(
-                            "<2sfff", b"!Q", x, y, z, w
+                            "<2sffff", b"!Q", x, y, z, w
                         )
                         data = add_checksum(partial_packet)
 
-                rich.inspect(client)
+                # rich.inspect(client)
                 await client.write_gatt_char(UART_RX_CHAR_UUID, data)
-                print("sent:", data)
+                print("sent:", sdata)
             except Exception as error:
                 print(error)
 
