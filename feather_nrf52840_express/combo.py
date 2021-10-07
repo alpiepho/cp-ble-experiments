@@ -83,10 +83,9 @@ while True:
                     print("Longitude", packet.longitude)
                     print("Altitude:", packet.altitude)
             except ValueError:
-                # assume just a string, try to rewind and get all bytes
-                uart_service.seek(0)
+                # assume just a string, try to get all bytes after !<letter>
                 if uart_service.in_waiting:
-                    raw_bytes = uart_server.read(uart_server.in_waiting)
+                    raw_bytes = uart_service.read(uart_service.in_waiting)
                     text = raw_bytes.decode().strip()
                     # print("raw bytes =", raw_bytes)
                     print(text)
