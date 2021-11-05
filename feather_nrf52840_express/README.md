@@ -27,6 +27,13 @@ Eventually, I would like a full long-term "sensor" logger platform runing Zephyr
 - use MAGTAG sleep idea for longer battery?
 
 
+## Looking for way to 'revive' board falshed with Zephyr to CircuitPython
+
+Need to review these:
+
+https://learn.adafruit.com/bluefruit-nrf52-feather-learning-guide/flashing-the-bootloader
+
+https://learn.adafruit.com/circuitpython-on-the-nrf52/nrf52840-bootloader
 
 
 ## References
