@@ -31,6 +31,8 @@ Eventually, I would like a full long-term "sensor" logger platform runing Zephyr
 
 Need to review these:
 
+https://learn.adafruit.com/introducing-the-adafruit-nrf52840-feather/update-bootloader
+
 https://learn.adafruit.com/bluefruit-nrf52-feather-learning-guide/flashing-the-bootloader
 
 https://learn.adafruit.com/circuitpython-on-the-nrf52/nrf52840-bootloader
