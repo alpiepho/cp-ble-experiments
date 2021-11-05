@@ -35,6 +35,7 @@ https://learn.adafruit.com/bluefruit-nrf52-feather-learning-guide/flashing-the-b
 
 https://learn.adafruit.com/circuitpython-on-the-nrf52/nrf52840-bootloader
 
+https://github.com/adafruit/Adafruit_nRF52_Bootloader
 
 ## References
 
