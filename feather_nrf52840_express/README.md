@@ -40,9 +40,35 @@ This is a simple temperature sensor setup.  Some of the design requirements:
 Eventually, I would like a full long-term "sensor" logger platform runing ZephyrOS with many sensors running in real time.  However, the simplicity of CP (Circuit Python) is hard to pass up inorder to get a prototype working.
 
 Files:
-- <b>TODO</b> tempsensor1.py - example circuitpython.org?
 - <b>TODO</b> mock_cli.py - example implemetation of CLI running on desktop
 - <b>TODO</b> bt_uart_cli.py - example implemetation of CLI over BT UART working with BluefruitConnect IOS application
+- <b>TODO</b> temp_sensor1.py - example circuitpython.org?
+
+## TEMP SENSOR SAMPLE
+
+From the example in the REFFERENCES below:
+
+![Diagran](./dht22.png)
+
+This digram shows a DHT22 part while we will use a DHT11 part.  The DHT11 has 3 pins and is a blue part.  Also shown is using a Adafruit Tricket board instead of a Adafruit Feather NRF52840, where we should be able to use one of the A0-A5 imput pins (and the 10k resistor is needed with the DHT11 part).
+
+The first circuit will use a breadboard and later be converted to perfboard.
+
+
+## Mock CLI
+
+<b>TODO</b> 
+
+
+<b>TODO</b> 
+
+
+## Mock CLI
+
+<b>TODO</b> 
+
+- idea
+- mock on desktop
 
 ## BT UART CLI
 
@@ -53,6 +79,9 @@ Files:
 - example on CP
 - how to expand for temp sensor
 
+## BT UART CLI WITH TEMP SENSOR
+
+<b>TODO</b> 
 
 
 
@@ -71,6 +100,8 @@ https://github.com/adafruit/Adafruit_nRF52_Bootloader
 
 ## References
 
-https://learn.adafruit.com/dht/dht-circuitpython-code
+[DHT CircuitPython Code](https://learn.adafruit.com/dht/dht-circuitpython-code)
 
-https://www.digikey.com/htmldatasheets/production/2071184/0/0/1/dht11-humidity-temp-sensor.html?utm_adgroup=xGeneral&utm_source=google&utm_medium=cpc&utm_campaign=Dynamic%20Search_EN_Product&utm_term=&utm_content=xGeneral&gclid=Cj0KCQjwrJOMBhCZARIsAGEd4VE-y2GArTc0jV7AzMAocpMigdgkhviQDjdtSYQr0yUu6q5MWDBm0hMaAptpEALw_wcB
+[Adafruit Feather NRF52840 Pinout](https://learn.adafruit.com/introducing-the-adafruit-nrf52840-feather/pinouts)
+
+[DHT11 Data Sheet](https://www.digikey.com/htmldatasheets/production/2071184/0/0/1/dht11-humidity-temp-sensor.html?utm_adgroup=xGeneral&utm_source=google&utm_medium=cpc&utm_campaign=Dynamic%20Search_EN_Product&utm_term=&utm_content=xGeneral&gclid=Cj0KCQjwrJOMBhCZARIsAGEd4VE-y2GArTc0jV7AzMAocpMigdgkhviQDjdtSYQr0yUu6q5MWDBm0hMaAptpEALw_wcB)
