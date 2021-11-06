@@ -1,12 +1,18 @@
 # Experiments with Adafruit Feather Nrf52840 Express
 
+Really don't know where to put details of specfic projects for the board, so stuffing it here.  
+
+
 ## General Experiments
 
-Files:
+As part of the overall CP-BLE-Experiments, I tried a number of examples related to BLE.  These all use a custom BT Uart Packet to work with the "BluefruitConnect" IOS application. (think there is an Android one as well). 
 
-<b>TBD</b>
+<b>TODO</b>  Find combo version that supports general BT Uart AND the custom Packet form, include here.
+
+Files:
 - minimum.py - advertise only
 - button_press.py - print to serial when button is pressed
+- combo.py - a mash up of the various custom BT Uart Packet demos
 - neopixel.py - - control neopixel thru IOS applicaiton
 - mobile_movement.py - print to serial when IOS movement sent
 - location.py- print to serial when IOS location sent
@@ -15,16 +21,40 @@ Files:
 
 ## Temperature Logger
 
+This is a simple temperature sensor setup.  Some of the design requirements:
+
+- Adafruit Feather Nrf52840 Express
+- Circuit Python
+- a DHT11 3 pin sensor
+- a 10K resister
+- built on breadboard
+- Custom "CLI" interface over BT Uart
+- UI to configure
+- Keep samples of temp at given rate
+- no persistent storage
+- BT CLI command to dump data to Serial port
+- UI to configure state for "alarm"
+- alarm thru LED
+- alarm thru BT Beacon?
+
 Eventually, I would like a full long-term "sensor" logger platform runing ZephyrOS with many sensors running in real time.  However, the simplicity of CP (Circuit Python) is hard to pass up inorder to get a prototype working.
 
+Files:
+- <b>TODO</b> tempsensor1.py - example circuitpython.org?
+- <b>TODO</b> mock_cli.py - example implemetation of CLI running on desktop
+- <b>TODO</b> bt_uart_cli.py - example implemetation of CLI over BT UART working with BluefruitConnect IOS application
 
-- CP
-- Nrf52840
-- DHT11
-- 10k resister
-- BT UI
-- Command Line like and/or re-use BlueFruitConnect IOS (Android?) application
-- use MAGTAG sleep idea for longer battery?
+## BT UART CLI
+
+<b>TODO</b> 
+
+- idea
+- mock on desktop
+- example on CP
+- how to expand for temp sensor
+
+
+
 
 
 ## Looking for way to 'revive' board falshed with Zephyr to CircuitPython
