@@ -2,8 +2,6 @@
 import random
 import threading
 import time
-
-
 # from adafruit_ble import BLERadio
 # from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
 # from adafruit_ble.services.nordic import UARTService
@@ -12,6 +10,10 @@ import time
 # uart = UARTService()
 # advertisement = ProvideServicesAdvertisement(uart)
 
+last_temperature = 0
+last_distance = 100000
+
+
 samples = {}
 count = 0
 count_max = 100
@@ -19,9 +21,18 @@ count_rollover = 0
 count_rate = 1
 pause = False
 
-result = None
+led_battery = True
+led_alarm = True
+
+trigger_high_value = 3.3
+trigger_high_seconds = 3600
+
+trigger_low_value = 1.0
+trigger_low_seconds = 300
+
 
 def sample_thread():
+    global samples
     global count
       
     while True:
@@ -33,43 +44,89 @@ def sample_thread():
                 count = 0
                 samples = {} # TODO: create rollover instead of reset
 
-            samples[seconds] = random.uniform(0, 3.3)
+            last_distance = random.uniform(0, 100) # TODO: add sensor read here
+
+            last_temperature = random.uniform(0, 3.3) # TODO: add sensor read here
+            samples[seconds] = last_temperature
             count = count + 1
+
+            # TODO check for low battery
+
+            # TODO check for trigger high
+
+            # TODO check for trigger low
 
 def Help():
     # help
-    print('0,h,? - help')
-    print('1,i   - info ')
+    print(f'0,h,? - help')
+    print(f'1,i   - info ')
     # measure
-    print('10 - last raw/C/F')
-    print('11 - last distance raw/cm/inches')
+    print(f'10 - last raw/C/F')
+    print(f'11 - last distance')
     # sampling
-    print(f'20 - max samples (default {count_max})')
-    print(f'21 - sample rate (default {count_rate})')
-    print('22,s - start')
-    print('23,t - stop')
-    print('24,p - pause')
-    print('25,r - reset')
+    print(f'20 - max samples (current {count_max})')
+    print(f'21 - sample rate (current {count_rate})')
+    print(f'22,s - start')
+    print(f'23,t - stop')
+    print(f'24,p - pause')
+    print(f'25,r - reset')
     # dump
-    print('30 - dump to serial - raw')
-    print('31 - dump to serial - C')
-    print('32 - dump to serial - F (default)')
+    print(f'31 - dump to serial - C')
+    print(f'32 - dump to serial - F (default)')
     # alarms
-    print('40 - battery led slow blink (default 1)')
-    print('41 - threshold alarm led fast blink (default 1)')
+    # print('40 - battery led slow blink (default 1)')
+    # print('41 - threshold alarm led fast blink (default 1)')
     # triggers
-    print('50 - temp high threshold - raw (default TBD)')
-    print('51 - temp high threshold - C   (default TBD)')
-    print('52 - temp high threshold - F   (default TBD)')
-    print('53 - temp high seconds         (default TBD)')
-    print('60 - temp low  threshold - raw (default TBD)')
-    print('61 - temp low  threshold - C   (default TBD)')
-    print('62 - temp low  threshold - F   (default TBD)')
-    print('63 - temp low  seconds         (default TBD)')
+    print(f'51 - temp high threshold - C   (current {trigger_high_value})')
+    temp = convertCtoF(trigger_high_value)
+    print(f'52 - temp high threshold - F   (current {temp})')
+    print(f'53 - temp high seconds         (current {trigger_high_seconds})')
+    print(f'61 - temp low  threshold - C   (current {trigger_low_value})')
+    temp = convertCtoF(trigger_low_value)
+    print(f'62 - temp low  threshold - F   (current {temp})')
+    print(f'63 - temp low  seconds         (current {trigger_low_seconds})')
+
+def getInt(option, oldValue):
+    result = oldValue
+    try:
+        parts = option.split()
+        print(parts)
+        result = int(parts[1])
+    except:
+        print('bad value')
+    return result
+
+def getFloat(option, oldValue):
+    result = oldValue
+    try:
+        parts = option.split()
+        result = float(parts[1])
+    except:
+        print('bad value')
+    return result
 
 def Info():
-    print(f'rate: {rate}')
-    print(f'samples: {count}')
+    print(f'count: {count}')
+    print(f'count_max: {count_max}')
+    print(f'count_rate: {count_rate}')
+    print(f'count_rate: {count_rollover}')
+    print(f'pause: {pause}')
+
+def LastTemp():
+    print(f'temperature: {last_temperature}')
+
+def LastDistance():
+    print(f'distance: {last_distance}')
+
+def Start():
+    ...
+
+def Stop():
+    ...
+
+def Pause():
+    global pause
+    pause = not pause
 
 def Reset():
     global count
@@ -82,6 +139,17 @@ def Reset():
     samples = {}
     pause = saved
 
+def DumpC():
+    ...
+
+def DumpF():
+    ...
+
+def convertCtoF(value):
+    return value * (9 / 5) + 32
+
+def convertFtoC(value):
+    return ((value - 32) * 5) / 9
 
 # Setup
 t = threading.Thread(target=sample_thread)
@@ -98,18 +166,10 @@ while True:
         LastTemp()
     elif option == '11':
         LastDistance()
-    elif option.starts_with('20 '): # max samples <count>
-        try:
-            parts = options.split()
-            count_max = parts[1]
-        except:
-            print('bad value')
-    elif option.starts_with('20 '): # sample rate <seconds>
-        try:
-            parts = options.split()
-            count_rate = parts[1]
-        except:
-            print('bad value')
+    elif option.startswith('20 '):
+        count_max = getInt(option, count_max)
+    elif option.startswith('21 '):
+        count_rate = getInt(option, count_rate)
     elif option == '22' or option == 's':
         Start()
     elif option == '23' or option == 't':
@@ -118,25 +178,30 @@ while True:
         Pause()
     elif option == '25' or option == 'r':
         Reset()
-
-    # # dump
-    # print('30 - dump to serial - raw')
-    # print('31 - dump to serial - C')
-    # print('32 - dump to serial - F (default)')
-    # # alarms
-    # print('40 - battery led slow blink (default 1)')
-    # print('41 - threshold alarm led fast blink (default 1)')
-    # # triggers
-    # print('50 - temp high threshold - raw (default TBD)')
-    # print('51 - temp high threshold - C   (default TBD)')
-    # print('52 - temp high threshold - F   (default TBD)')
-    # print('53 - temp high seconds         (default TBD)')
-    # print('60 - temp low  threshold - raw (default TBD)')
-    # print('61 - temp low  threshold - C   (default TBD)')
-    # print('62 - temp low  threshold - F   (default TBD)')
-    # print('63 - temp low  seconds         (default TBD)')
-
-
+    elif option == '31':
+        DumpC()
+    elif option == '32':
+        DumpF()
+    elif option.startswith('50 '):
+        trigger_high_value = getFloat(option, trigger_high_value)
+    elif option.startswith('51 '):
+        trigger_high_value = getFloat(option, trigger_high_value)
+        trigger_high_value = convertCtoRaw(trigger_high_value)
+    elif option.startswith('52 '):
+        trigger_high_value = getFloat(option, trigger_high_value)
+        trigger_high_value = convertFtoRaw(trigger_high_value)
+    elif option.startswith('53 '):
+        trigger_high_seconds = getInt(option, trigger_high_seconds)
+    elif option.startswith('60 '):
+        trigger_low_value = getFloat(option, trigger_low_value)
+    elif option.startswith('61 '):
+        trigger_low_value = getFloat(option, trigger_low_value)
+        trigger_low_value = convertCtoRaw(trigger_low_value)
+    elif option.startswith('62 '):
+        trigger_low_value = getFloat(option, trigger_low_value)
+        trigger_low_value = convertFtoRaw(trigger_low_value)
+    elif option.startswith('63 '):
+        trigger_low_seconds = getInt(option, trigger_low_seconds)
 
 #     ble.start_advertising(advertisement)
 #     print("Waiting to connect")
