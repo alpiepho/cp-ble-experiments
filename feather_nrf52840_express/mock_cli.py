@@ -21,15 +21,25 @@ count_rollover = 0
 count_rate = 1
 pause = False
 
-led_battery = True
-led_alarm = True
-
 trigger_high_value = 3.3
 trigger_high_seconds = 3600
 
 trigger_low_value = 1.0
 trigger_low_seconds = 300
 
+led_battery = False # TODO: battery led slow blink
+led_alarm = False   # TODO: threshold alarm led fast blink
+led_state = 0
+
+def led_thread():
+    global led_battery
+    global led_alarm
+    global led_state
+
+    while True:
+        time.sleep(0.5)
+        if led_battery:
+            print(f'LED: {led_state}')
 
 def sample_thread():
     global samples
@@ -72,10 +82,7 @@ def Help():
     print(f'25,r - reset')
     # dump
     print(f'31 - dump to serial - C')
-    print(f'32 - dump to serial - F (default)')
-    # alarms
-    # print('40 - battery led slow blink (default 1)')
-    # print('41 - threshold alarm led fast blink (default 1)')
+    print(f'32 - dump to serial - F')
     # triggers
     print(f'51 - temp high threshold - C   (current {trigger_high_value})')
     temp = convertCtoF(trigger_high_value)
@@ -90,7 +97,6 @@ def getInt(option, oldValue):
     result = oldValue
     try:
         parts = option.split()
-        print(parts)
         result = int(parts[1])
     except:
         print('bad value')
@@ -119,10 +125,12 @@ def LastDistance():
     print(f'distance: {last_distance}')
 
 def Start():
-    ...
-
+    global pause
+    pause = False
+    
 def Stop():
-    ...
+    global pause
+    pause = True
 
 def Pause():
     global pause
@@ -139,24 +147,37 @@ def Reset():
     samples = {}
     pause = saved
 
-def DumpC():
-    ...
-
-def DumpF():
-    ...
-
 def convertCtoF(value):
     return value * (9 / 5) + 32
 
 def convertFtoC(value):
     return ((value - 32) * 5) / 9
 
+def DumpC():
+    global samples
+    keys = samples.keys()
+    for key in keys:
+        value = samples[key]
+        print(f'{key}, {value}') # TODO: change to serial
+
+def DumpF():
+    global samples
+    keys = samples.keys()
+    for key in keys:
+        value = samples[key]
+        value = convertCtoF(value)
+        print(f'{key}, {value}') # TODO: change to serial
+
 # Setup
-t = threading.Thread(target=sample_thread)
-t.start()
+# TODO: is this going to work with CircuitPython???
+t1 = threading.Thread(target=led_thread)
+t1.start()
+
+t2 = threading.Thread(target=sample_thread)
+t2.start()
 
 while True:
-    print('> ')
+    print('option > ')
     option = input()
     if option == '0' or option == 'h' or option == '?':
         Help()
@@ -182,24 +203,18 @@ while True:
         DumpC()
     elif option == '32':
         DumpF()
-    elif option.startswith('50 '):
-        trigger_high_value = getFloat(option, trigger_high_value)
     elif option.startswith('51 '):
         trigger_high_value = getFloat(option, trigger_high_value)
-        trigger_high_value = convertCtoRaw(trigger_high_value)
     elif option.startswith('52 '):
         trigger_high_value = getFloat(option, trigger_high_value)
-        trigger_high_value = convertFtoRaw(trigger_high_value)
+        trigger_high_value = convertFtoC(trigger_high_value)
     elif option.startswith('53 '):
         trigger_high_seconds = getInt(option, trigger_high_seconds)
-    elif option.startswith('60 '):
-        trigger_low_value = getFloat(option, trigger_low_value)
     elif option.startswith('61 '):
         trigger_low_value = getFloat(option, trigger_low_value)
-        trigger_low_value = convertCtoRaw(trigger_low_value)
     elif option.startswith('62 '):
         trigger_low_value = getFloat(option, trigger_low_value)
-        trigger_low_value = convertFtoRaw(trigger_low_value)
+        trigger_low_value = convertFtoC(trigger_low_value)
     elif option.startswith('63 '):
         trigger_low_seconds = getInt(option, trigger_low_seconds)
 
