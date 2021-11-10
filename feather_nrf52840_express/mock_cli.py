@@ -13,7 +13,6 @@ import time
 last_temperature = 0
 last_distance = 100000
 
-
 samples = {}
 count = 0
 count_max = 100
@@ -27,47 +26,14 @@ trigger_high_seconds = 3600
 trigger_low_value = 1.0
 trigger_low_seconds = 300
 
-led_battery = False # TODO: battery led slow blink
-led_alarm = False   # TODO: threshold alarm led fast blink
+led_battery = False
+led_alarm = False
 led_state = 0
 
-def led_thread():
-    global led_battery
-    global led_alarm
-    global led_state
-
-    while True:
-        time.sleep(0.5)
-        if led_battery:
-            print(f'LED: {led_state}')
-
-def sample_thread():
-    global samples
-    global count
-      
-    while True:
-        time.sleep(count_rate)
-        if not pause:
-            seconds = time.time()
-            if count >= count_max:
-                count_rollover = count_rollover + 1
-                count = 0
-                samples = {} # TODO: create rollover instead of reset
-
-            last_distance = random.uniform(0, 100) # TODO: add sensor read here
-
-            last_temperature = random.uniform(0, 3.3) # TODO: add sensor read here
-            samples[seconds] = last_temperature
-            count = count + 1
-
-            # TODO check for low battery
-
-            # TODO check for trigger high
-
-            # TODO check for trigger low
 
 def Help():
     # help
+    print(f'-1,q - quit config mode')
     print(f'0,h,? - help')
     print(f'1,i   - info ')
     # measure
@@ -112,11 +78,14 @@ def getFloat(option, oldValue):
     return result
 
 def Info():
-    print(f'count: {count}')
-    print(f'count_max: {count_max}')
-    print(f'count_rate: {count_rate}')
-    print(f'count_rate: {count_rollover}')
-    print(f'pause: {pause}')
+    print(f'count:       {count}')
+    print(f'count_max:   {count_max}')
+    print(f'count_rate:  {count_rate}')
+    print(f'count_rate:  {count_rollover}')
+    print(f'pause:       {pause}')
+    print(f'led_battery: {led_battery}')
+    print(f'led_alarm:   {led_alarm}')
+    print(f'led_state:   {led_state}')
 
 def LastTemp():
     print(f'temperature: {last_temperature}')
@@ -168,55 +137,144 @@ def DumpF():
         value = convertCtoF(value)
         print(f'{key}, {value}') # TODO: change to serial
 
-# Setup
-# TODO: is this going to work with CircuitPython???
-t1 = threading.Thread(target=led_thread)
-t1.start()
+def ConfigMode():
+    # TODO: add button press test here
+    global loops
+    if loops > 10:
+        return True 
+    return False
 
-t2 = threading.Thread(target=sample_thread)
-t2.start()
+def ReadDistance():
+    return random.uniform(0, 100) # TODO: add sensor read here
+
+def ReadTemperature():
+    return random.uniform(0, 3.3) # TODO: add sensor read here
+
+def SetLed(state):
+    # TODO: turn on/off led
+    ...
+
+def BatteryLow():
+    # TODO check for low battery
+    return False
+
+def TriggerHigh():
+    return False
+
+def TriggerLow():
+    return False
+
+
+# Setup
+loops = 0
+sample_last_time = time.time()
+sample_current_time = sample_last_time
+
+led_last_time = time.time()
+led_current_time = led_last_time
 
 while True:
-    print('option > ')
-    option = input()
-    if option == '0' or option == 'h' or option == '?':
-        Help()
-    elif option == '1' or option == 'i':
-        Info()
-    elif option == '10':
-        LastTemp()
-    elif option == '11':
-        LastDistance()
-    elif option.startswith('20 '):
-        count_max = getInt(option, count_max)
-    elif option.startswith('21 '):
-        count_rate = getInt(option, count_rate)
-    elif option == '22' or option == 's':
-        Start()
-    elif option == '23' or option == 't':
-        Stop()
-    elif option == '24' or option == 'p':
-        Pause()
-    elif option == '25' or option == 'r':
-        Reset()
-    elif option == '31':
-        DumpC()
-    elif option == '32':
-        DumpF()
-    elif option.startswith('51 '):
-        trigger_high_value = getFloat(option, trigger_high_value)
-    elif option.startswith('52 '):
-        trigger_high_value = getFloat(option, trigger_high_value)
-        trigger_high_value = convertFtoC(trigger_high_value)
-    elif option.startswith('53 '):
-        trigger_high_seconds = getInt(option, trigger_high_seconds)
-    elif option.startswith('61 '):
-        trigger_low_value = getFloat(option, trigger_low_value)
-    elif option.startswith('62 '):
-        trigger_low_value = getFloat(option, trigger_low_value)
-        trigger_low_value = convertFtoC(trigger_low_value)
-    elif option.startswith('63 '):
-        trigger_low_seconds = getInt(option, trigger_low_seconds)
+    # throttle main loop
+    time.sleep(0.5)
+
+    # check for configuration mode
+    loops = loops + 1
+    if ConfigMode(): 
+        loops = 0
+        option = ''
+        while option != '-1' and option != 'q':
+            print('option > ')
+            option = input()
+            if option == '0' or option == 'h' or option == '?':
+                Help()
+            elif option == '1' or option == 'i':
+                Info()
+            elif option == '10':
+                LastTemp()
+            elif option == '11':
+                LastDistance()
+            elif option.startswith('20 '):
+                count_max = getInt(option, count_max)
+            elif option.startswith('21 '):
+                count_rate = getInt(option, count_rate)
+            elif option == '22' or option == 's':
+                Start()
+            elif option == '23' or option == 't':
+                Stop()
+            elif option == '24' or option == 'p':
+                Pause()
+            elif option == '25' or option == 'r':
+                Reset()
+            elif option == '31':
+                DumpC()
+            elif option == '32':
+                DumpF()
+            elif option.startswith('51 '):
+                trigger_high_value = getFloat(option, trigger_high_value)
+            elif option.startswith('52 '):
+                trigger_high_value = getFloat(option, trigger_high_value)
+                trigger_high_value = convertFtoC(trigger_high_value)
+            elif option.startswith('53 '):
+                trigger_high_seconds = getInt(option, trigger_high_seconds)
+            elif option.startswith('61 '):
+                trigger_low_value = getFloat(option, trigger_low_value)
+            elif option.startswith('62 '):
+                trigger_low_value = getFloat(option, trigger_low_value)
+                trigger_low_value = convertFtoC(trigger_low_value)
+            elif option.startswith('63 '):
+                trigger_low_seconds = getInt(option, trigger_low_seconds)
+
+    # test for time to sample
+    sample_current_time = time.time()
+    if (sample_current_time - sample_last_time) >= count_rate:
+        sample_last_time = sample_current_time
+        if not pause:
+            seconds = time.time()
+            if count >= count_max:
+                count_rollover = count_rollover + 1
+                count = 0
+                samples = {} # TODO: create rollover instead of reset
+
+            last_distance = ReadDistance()
+            last_temperature = ReadTemperature()
+            samples[seconds] = last_temperature
+            count = count + 1
+
+            if BatteryLow():
+                led_battery = True
+            if TriggerHigh():
+                led_alarm = True
+            if TriggerLow():
+                led_alarm = True
+
+    # test for led toggle
+    led_current_time = time.time()
+    if (led_current_time - led_last_time) > 1:
+        led_last_time = led_current_time
+        if not led_battery and not led_alarm:
+            led_state = 0
+            SetLed(0)
+        if led_battery: # 1,0,0,1,0,0...
+            if led_state == 0:
+                led_state = 1
+                SetLed(1)
+            if led_state == 1:
+                led_state = 2
+                SetLed(0)
+            if led_state == 2:
+                led_state = 0
+                SetLed(0)
+        if led_alarm: # 1,0,1,0... overrides battery
+            if led_state == 0:
+                led_state = 1
+                SetLed(1)
+            if led_state == 1:
+                led_state = 0
+                SetLed(0)
+            if led_state == 2: # override possible battery sequence
+                led_state = 0
+                SetLed(0)
+
 
 #     ble.start_advertising(advertisement)
 #     print("Waiting to connect")
