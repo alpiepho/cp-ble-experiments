@@ -137,13 +137,6 @@ def DumpF():
         value = convertCtoF(value)
         print(f'{key}, {value}') # TODO: change to serial
 
-def ConfigMode():
-    # TODO: add button press test here
-    global loops
-    if loops > 10:
-        return True 
-    return False
-
 def ReadDistance():
     return random.uniform(0, 100) # TODO: add sensor read here
 
@@ -152,11 +145,12 @@ def ReadTemperature():
 
 def SetLed(state):
     # TODO: turn on/off led
+    print(f'led: {state}')
     ...
 
 def BatteryLow():
     # TODO check for low battery
-    return False
+    return trigger_low_value
 
 def TriggerHigh():
     return False
@@ -164,23 +158,20 @@ def TriggerHigh():
 def TriggerLow():
     return False
 
+def RunConfigMode():
+    global count_max
+    global count_rate
+    global trigger_high_value
+    global trigger_high_seconds
+    global trigger_low_value
+    global trigger_low_seconds
 
-# Setup
-loops = 0
-sample_last_time = time.time()
-sample_current_time = sample_last_time
+    # TODO: add button press test here
+    global config_last_time
+    current_time = time.time()
+    if (current_time - config_last_time) > 10:
+        config_last_time = current_time
 
-led_last_time = time.time()
-led_current_time = led_last_time
-
-while True:
-    # throttle main loop
-    time.sleep(0.5)
-
-    # check for configuration mode
-    loops = loops + 1
-    if ConfigMode(): 
-        loops = 0
         option = ''
         while option != '-1' and option != 'q':
             print('option > ')
@@ -224,10 +215,20 @@ while True:
             elif option.startswith('63 '):
                 trigger_low_seconds = getInt(option, trigger_low_seconds)
 
-    # test for time to sample
-    sample_current_time = time.time()
-    if (sample_current_time - sample_last_time) >= count_rate:
-        sample_last_time = sample_current_time
+def RunSampler():
+    global sample_last_time
+    global count
+    global count_max
+    global samples
+    global last_distance
+    global last_temperature
+    global led_battery
+    global led_alarm
+
+    current_time = time.time()
+    if (current_time - sample_last_time) >= count_rate:
+        sample_last_time = current_time
+
         if not pause:
             seconds = time.time()
             if count >= count_max:
@@ -247,10 +248,15 @@ while True:
             if TriggerLow():
                 led_alarm = True
 
-    # test for led toggle
-    led_current_time = time.time()
-    if (led_current_time - led_last_time) > 1:
-        led_last_time = led_current_time
+def RunLed():
+    global led_last_time
+    global led_state
+
+    current_time = time.time()
+    if (current_time - led_last_time) > 1:
+        led_last_time = current_time
+
+        #print(current_time)
         if not led_battery and not led_alarm:
             led_state = 0
             SetLed(0)
@@ -258,23 +264,35 @@ while True:
             if led_state == 0:
                 led_state = 1
                 SetLed(1)
-            if led_state == 1:
+            elif led_state == 1:
                 led_state = 2
                 SetLed(0)
-            if led_state == 2:
+            elif led_state == 2:
                 led_state = 0
                 SetLed(0)
         if led_alarm: # 1,0,1,0... overrides battery
             if led_state == 0:
                 led_state = 1
                 SetLed(1)
-            if led_state == 1:
+            elif led_state == 1:
                 led_state = 0
                 SetLed(0)
-            if led_state == 2: # override possible battery sequence
+            elif led_state == 2: # override possible battery sequence
                 led_state = 0
                 SetLed(0)
 
+# Setup
+config_last_time = time.time()
+sample_last_time = time.time()
+led_last_time = time.time()
+
+while True:
+    RunConfigMode()
+    RunSampler()
+    RunLed()
+
+    # throttle main loop
+    #time.sleep(0.5)
 
 #     ble.start_advertising(advertisement)
 #     print("Waiting to connect")
