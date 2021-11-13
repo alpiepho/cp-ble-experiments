@@ -1,4 +1,5 @@
 
+import board
 import random
 import threading
 import time
@@ -14,16 +15,28 @@ led_battery = False
 led_alarm = False
 led_state = 0
 
-def Help():
+def Help(uart):
     # help
-    print(f'-1,q - quit config mode')
-    print(f'0,h,? - help')
-    print(f'1,i   - info ')
+    msg1 = f'-1,q - quit config mode'
+    msg2 = f'0,h,? - help'
+    msg3 = f'1,i   - info '
     # led
-    print(f'10 - led_battery (current {led_battery})')
-    print(f'11 - led_alarm (current {led_alarm})')
+    msg4 = f'10 - led_battery (current {led_battery})'
+    msg5 = f'11 - led_alarm (current {led_alarm})'
     # dump
-    print(f'20 - dump sample to serial')
+    msg6 = f'20 - dump sample to serial'
+    print(msg1)
+    print(msg2)
+    print(msg3)
+    print(msg4)
+    print(msg5)
+    print(msg6)
+    uart.write(msg1.encode("utf-8"))
+    uart.write(msg2.encode("utf-8"))
+    uart.write(msg3.encode("utf-8"))
+    uart.write(msg4.encode("utf-8"))
+    uart.write(msg5.encode("utf-8"))
+    uart.write(msg6.encode("utf-8"))
 
 def getInt(option, oldValue):
     result = oldValue
@@ -43,59 +56,64 @@ def getInt(option, oldValue):
 #         print('bad value')
 #     return result
 
-def Info():
-    print(f'led_battery: {led_battery}')
-    print(f'led_alarm:   {led_alarm}')
-    print(f'led_state:   {led_state}')
+def Info(uart):
+    msg1 = f'led_battery: {led_battery}'
+    msg2 = f'led_alarm:   {led_alarm}'
+    msg3 = f'led_state:   {led_state}'
+    print(msg1)
+    print(msg2)
+    print(msg3)
+    uart.write(msg1.encode("utf-8"))
+    uart.write(msg2.encode("utf-8"))
+    uart.write(msg3.encode("utf-8"))
 
-def Dump():
+def Dump(uart):
     global samples
     keys = samples.keys()
-    for key in range(10):
-        value = random.uniform(0, 100)
-        print(f'{key}, {value}') # TODO: change to serial
+    for key in keys:
+        value =samples[key]
+        print(f'{key}, {value}')
+    length = len(samples)
+    msg1 = f'samples size, sent to serial: {length}'
+    uart.write(msg1.encode("utf-8"))
 
 def SetLed(state):
-    # TODO: turn on/off led
-    print(f'led: {state}')
-    ...
+    #print(f'led: {state}')
+    board.LED = state
 
 
 def RunConfigMode(uart):
     global led_battery
     global led_alarm
 
-    # TODO: add button press test here
-    global config_last_time
-    current_time = time.time()
-    if (current_time - config_last_time) > 10:
-        config_last_time = current_time
+    if board.SWITCH: # D7, debouncer?
+        # global config_last_time
+        # current_time = time.time()
+        # if (current_time - config_last_time) > 10:
+        #     config_last_time = current_time
 
         option = ''
         while option != '-1' and option != 'q':
             # print('option > ')
             msg = 'option > '
             uart.write(msg.encode("utf-8"))
-            option = input()
-            # s = uart.readline()
-            # if s:
-            #     try:
-            #         result = str(eval(s))
-            #     except Exception as e:
-            #         result = repr(e)
-            #     uart.write(result.encode("utf-8"))
-
-            if option == '0' or option == 'h' or option == '?':
-                Help()
-            elif option == '1' or option == 'i':
-                Info()
-            elif option.startswith('10 '):
-                led_battery = getInt(option, led_battery)
-            elif option.startswith('11 '):
-                led_alarm = getInt(option, led_alarm)
-            elif option == '20':
-                Dump()
-
+            #option = input()
+            option = uart.readline()
+            if option:
+                try:
+                    if option == '0' or option == 'h' or option == '?':
+                        Help(uart)
+                    elif option == '1' or option == 'i':
+                        Info(uart)
+                    elif option.startswith('10 '):
+                        led_battery = getInt(option, led_battery)
+                    elif option.startswith('11 '):
+                        led_alarm = getInt(option, led_alarm)
+                    elif option == '20':
+                        Dump(uart)
+                except Exception as e:
+                    result = repr(e)
+                    uart.write(result.encode("utf-8"))
 
 def RunLed():
     global led_last_time
@@ -144,6 +162,7 @@ while True:
     while ble.connected:
         RunLed()
         RunConfigMode(uart)
+        
         # s = uart.readline()
         # if s:
         #     try:
