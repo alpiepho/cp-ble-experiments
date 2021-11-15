@@ -1,5 +1,6 @@
 
 import board
+import neopixel
 import time
 
 from digitalio import DigitalInOut, Direction, Pull
@@ -16,7 +17,8 @@ ble = BLERadio()
 uart = UARTService()
 advertisement = ProvideServicesAdvertisement(uart)
 
-neo_color = 0x000000
+neo_color = 0xff111111
+neo_bright = 0.2
 pixels = neopixel.NeoPixel(board.NEOPIXEL, 10, brightness=0.1)
 pixels.fill(neo_color)
 
@@ -46,20 +48,33 @@ def Help(uart):
     msg2 = f'i - info\n'
     msg3 = f'a - toggle led_alarm (current {led_alarm})\n'
     msg4 = f'b - toggle led_battery (current {led_battery})\n'
-    msg5 = f'n - set neopixel <hex> (current {{neo_color:#08x}})\n'
-    msg6 = f'd - dump sample to serial\n'
+    msg5 = f'n - set neopixel color <hex> (current #{neo_color:08x})\n'
+    msg6 = f'N - set neopixel  brightness (current {neo_bright})\n'
+    msg7 = f'd - dump sample to serial\n'
     uart.write(msg1.encode("utf-8"))
     uart.write(msg2.encode("utf-8"))
     uart.write(msg3.encode("utf-8"))
     uart.write(msg4.encode("utf-8"))
     uart.write(msg5.encode("utf-8"))
     uart.write(msg6.encode("utf-8"))
+    uart.write(msg7.encode("utf-8"))
 
 def getHex(option, oldValue):
     result = oldValue
     try:
         parts = option.split()
-        result = int(parts[1], base=16)
+        temp = parts[1].decode("utf-8")
+        result = int(temp, 16)
+    except Exception as e:
+        print('bad value')
+        print(e)
+    return result
+
+def getFloat(option, oldValue):
+    result = oldValue
+    try:
+        parts = option.split()
+        result = float(parts[1])
     except:
         print('bad value')
     return result
@@ -68,11 +83,13 @@ def Info(uart):
     msg1 = f'led_battery: {led_battery}\n'
     msg2 = f'led_alarm:   {led_alarm}\n'
     msg3 = f'led_state:   {led_state}\n'
-    msg4 = f'neo_color:   {neo_color:#08x}\n'
+    msg4 = f'neo_color:   #{neo_color:08x}\n'
+    msg5 = f'neo_bright:  {neo_bright}\n'
     uart.write(msg1.encode("utf-8"))
     uart.write(msg2.encode("utf-8"))
     uart.write(msg3.encode("utf-8"))
     uart.write(msg4.encode("utf-8"))
+    uart.write(msg5.encode("utf-8"))
 
 def Dump(uart):
     global samples
@@ -92,6 +109,8 @@ def SetLed(state):
 def RunConfigMode(uart):
     global led_battery
     global led_alarm
+    global neo_color
+    global neo_bright
 
     option = uart.readline()
     option = option.strip()
@@ -103,6 +122,8 @@ def RunConfigMode(uart):
         led_battery = not led_battery
     elif option.startswith(b'n '):
         neo_color = getHex(option, neo_color)
+    elif option.startswith(b'N '):
+        neo_bright = getFloat(option, neo_bright)
 	pixels.fill(neo_color)
     elif option == b'd':
         Dump(uart)
@@ -151,10 +172,11 @@ def RunLed():
             SetLed(0)
 
 def RunNeo():
-    if switch.value:
+    global neo_bright
+    if switch.value == 0:
         pixels.brightness = 1.0
     else:
-        pixels.brightness = 0.2
+        pixels.brightness = neo_bright
 
 while True:
     ble.start_advertising(advertisement)
