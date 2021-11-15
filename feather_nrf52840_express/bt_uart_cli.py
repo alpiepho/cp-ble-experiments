@@ -1,7 +1,5 @@
 
 import board
-import neopixel
-import random
 import time
 
 from digitalio import DigitalInOut, Direction, Pull
@@ -13,9 +11,18 @@ from adafruit_ble.services.nordic import UARTService
 from adafruit_bluefruit_connect.packet import Packet
 from adafruit_bluefruit_connect.color_packet import ColorPacket
 
+# Setup
 ble = BLERadio()
 uart = UARTService()
 advertisement = ProvideServicesAdvertisement(uart)
+
+neo_color = 0x000000
+pixels = neopixel.NeoPixel(board.NEOPIXEL, 10, brightness=0.1)
+pixels.fill(neo_color)
+
+switch = DigitalInOut(board.SWITCH)
+switch.direction = Direction.INPUT
+switch.pull = Pull.UP
 
 samples = {}
 
@@ -25,62 +32,47 @@ led_state = 0
 led = DigitalInOut(board.LED)
 led.direction = Direction.OUTPUT
 
+led_last_time = time.time()
 led_time_delta = 500000000 # 1/2 sec
 
-pixels = neopixel.NeoPixel(board.NEOPIXEL, 10, brightness=0.1)
 
-# switch = DigitalInOut(board.SWITCH)
-# switch.direction = Direction.INPUT
-# switch.pull = Pull.UP
 
 def Help(uart):
     # help
     # NOTE: try to favor letters over numbers, 
     #       and extra options instead of parameters,
     #       those are easier from Bluefruit Connect app
-    # msg1 = f'q - quit config mode\n'
-    msg2 = f'0 - help\n'
-    msg3 = f'i - info\n'
-    msg5 = f'a - toggle led_alarm (current {led_alarm})\n'
+    msg1 = f'h - help\n'
+    msg2 = f'i - info\n'
+    msg3 = f'a - toggle led_alarm (current {led_alarm})\n'
     msg4 = f'b - toggle led_battery (current {led_battery})\n'
+    msg5 = f'n - set neopixel <hex> (current {{neo_color:#08x}})\n'
     msg6 = f'd - dump sample to serial\n'
-    # uart.write(msg1.encode("utf-8"))
+    uart.write(msg1.encode("utf-8"))
     uart.write(msg2.encode("utf-8"))
     uart.write(msg3.encode("utf-8"))
     uart.write(msg4.encode("utf-8"))
     uart.write(msg5.encode("utf-8"))
     uart.write(msg6.encode("utf-8"))
 
-# def getInt(option, oldValue):
-#     result = oldValue
-#     try:
-#         parts = option.split()
-#         if parts[1].startswith(b't') or parts[1].startswith(b'T'):
-#             result = 1
-#         elif parts[1].startswith(b'f') or parts[1].startswith(b'F'):
-#             result = 0
-#         else:
-#             result = int(parts[1])
-#     except:
-#         print('bad value')
-#     return result
-
-# def getFloat(option, oldValue):
-#     result = oldValue
-#     try:
-#         parts = option.split()
-#         result = float(parts[1])
-#     except:
-#         print('bad value')
-#     return result
+def getHex(option, oldValue):
+    result = oldValue
+    try:
+        parts = option.split()
+        result = int(parts[1], base=16)
+    except:
+        print('bad value')
+    return result
 
 def Info(uart):
     msg1 = f'led_battery: {led_battery}\n'
     msg2 = f'led_alarm:   {led_alarm}\n'
     msg3 = f'led_state:   {led_state}\n'
+    msg4 = f'neo_color:   {neo_color:#08x}\n'
     uart.write(msg1.encode("utf-8"))
     uart.write(msg2.encode("utf-8"))
     uart.write(msg3.encode("utf-8"))
+    uart.write(msg4.encode("utf-8"))
 
 def Dump(uart):
     global samples
@@ -97,22 +89,21 @@ def SetLed(state):
     temp = time.time()
     samples[temp] = state
 
-
 def RunConfigMode(uart):
     global led_battery
     global led_alarm
 
     option = uart.readline()
     option = option.strip()
-    # print(f'given: {option}')
     if option == b'i':
         Info(uart)
     elif option == b'a':
         led_alarm = not led_alarm
     elif option == b'b':
         led_battery = not led_battery
-    # elif option.startswith(b'b '):
-    #     led_battery = getInt(option, led_battery)
+    elif option.startswith(b'n '):
+        neo_color = getHex(option, neo_color)
+	pixels.fill(neo_color)
     elif option == b'd':
         Dump(uart)
     elif len(option) > 0:
@@ -135,7 +126,6 @@ def RunLed():
     if (current_time - led_last_time) > led_time_delta:
         led_last_time = current_time
 
-        #print(current_time)
         if led_alarm: # 1,0,1,0... overrides battery
             if led_state == 0:
                 led_state = 1
@@ -160,16 +150,22 @@ def RunLed():
             led_state = 0
             SetLed(0)
 
-# Setup
-led_last_time = time.time()
+def RunNeo():
+    if switch.value:
+        pixels.brightness = 1.0
+    else:
+        pixels.brightness = 0.2
 
 while True:
-
     ble.start_advertising(advertisement)
     print("Waiting to connect")
     while not ble.connected:
         RunLed()
+        RunNeo()
     print("Connected")
     while ble.connected:
         RunLed()
+        RunNeo()
         RunConfigMode(uart)
+
+
