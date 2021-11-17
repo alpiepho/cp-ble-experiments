@@ -2,6 +2,7 @@
 import board
 import random
 import time
+import gc
 
 from digitalio import DigitalInOut, Direction, Pull
 from analogio import AnalogIn
@@ -20,7 +21,7 @@ ble = BLERadio()
 uart = UARTService()
 advertisement = ProvideServicesAdvertisement(uart)
 
-dhtDevice = adafruit_dht.DHT22(board.D5)
+dhtDevice = adafruit_dht.DHT11(board.D5)
 
 batt_monitor = AnalogIn(board.BATTERY)
 
@@ -35,6 +36,7 @@ led.direction = Direction.OUTPUT
 led_last_time = time.time()
 led_time_delta = 500000000 # 1/2 sec
 
+temp_sample_seconds = 5
 temp_c_trigger_value = 1000
 temp_c_trigger_seconds = 10
 
@@ -102,8 +104,8 @@ def Dump(uart):
 
 def SetLed(state):
     led.value = state
-    temp = time.time()
-    samples[temp] = state
+    # temp = time.time()
+    # samples[temp] = state
 
 def RunConfigMode(uart):
     global led_battery
@@ -169,26 +171,40 @@ def RunLed():
             led_state = 0
             SetLed(0)
 
-last_temp_ts = time.monotonic_ns
+last_temp_sample_ts = time.monotonic_ns()
+last_temp_trigger_ts = time.monotonic_ns()
 def RunDHT():
-    # global temp_c_trigger_value
-    # global temp_c_trigger_seconds
-    # global led_alarm
-    # global last_temp_ts
+    global temp_c_trigger_value
+    global temp_c_trigger_seconds
+    global led_alarm
+    global last_temp_sample_ts
+    global last_temp_trigger_ts
+    global samples
 
-    # # FROM: https://circuitpython.readthedocs.io/projects/dht/en/latest/
-    # temp_c = dhtDevice.temperature
-    # temp_f = temp_c * (9 / 5) + 32
-    # humidity = dhtDevice.humidity
-    # print("Temp: {:.1f} F / {:.1f} C Humidity: {}% ".format(temp_f, temp_c, humidity))
-    # ts = time.monotonic_ns
-    # samples[ts] = temp_c
-    # led_alarm = 0
-    # if (ts - last_temp_ts)/1000000000 > temp_c_trigger_seconds:
-    #     last_temp_ts = ts
-    #     if temp_c > temp_c_trigger_value:
-    #         led_alarm = 1
-    ...
+    # FROM: https://circuitpython.readthedocs.io/projects/dht/en/latest/
+    try:
+        temp_c = dhtDevice.temperature
+        temp_f = temp_c * (9 / 5) + 32
+        humidity = dhtDevice.humidity
+        ts = time.monotonic_ns()
+        led_alarm = 0
+        if (ts - last_temp_sample_ts)/1000000000 > temp_sample_seconds:
+            last_temp_sample_ts = ts
+            print("Temp: {:.1f} F / {:.1f} C Humidity: {}% ".format(temp_f, temp_c, humidity))
+            print(len(samples))
+            print(gc.mem_free())
+            if len(samples) > 200:
+                samples = {}
+            samples[ts] = temp_c
+        if (ts - last_temp_trigger_ts)/1000000000 > temp_c_trigger_seconds:
+            last_temp_trigger_ts = ts
+            if temp_c > temp_c_trigger_value: 
+                led_alarm = 1
+    except Exception as e:
+        print("temp read failed")
+        print(e)
+    
+
 
 def RunBattery():
     global led_battery
