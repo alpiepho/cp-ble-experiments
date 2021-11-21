@@ -84,6 +84,10 @@ while True:
                     print("Altitude:", packet.altitude)
             except ValueError:
                 # assume just a string, try to get all bytes after !<letter>
+                # NOTE: when using the BluefruitConnect application, a "!" must
+                #       be the first character sent, or this application will block
+                #       on the from_stream call above.  May need to customize Packet
+                #       to fix this.
                 if uart_service.in_waiting:
                     raw_bytes = uart_service.read(uart_service.in_waiting)
                     text = raw_bytes.decode().strip()

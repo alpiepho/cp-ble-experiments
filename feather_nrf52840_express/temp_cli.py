@@ -183,13 +183,15 @@ def RunDHT():
 
     # FROM: https://circuitpython.readthedocs.io/projects/dht/en/latest/
     try:
-        temp_c = dhtDevice.temperature
-        temp_f = temp_c * (9 / 5) + 32
-        humidity = dhtDevice.humidity
         ts = time.monotonic_ns()
         led_alarm = 0
         if (ts - last_temp_sample_ts)/1000000000 > temp_sample_seconds:
             last_temp_sample_ts = ts
+
+            temp_c = dhtDevice.temperature
+            temp_f = temp_c * (9 / 5) + 32
+            humidity = dhtDevice.humidity
+
             print("Temp: {:.1f} F / {:.1f} C Humidity: {}% ".format(temp_f, temp_c, humidity))
             print(len(samples))
             print(gc.mem_free())
