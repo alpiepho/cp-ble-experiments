@@ -19,10 +19,30 @@ Some features I really don't care about:
 - as an introvert, I really don't like the attention
 
 
+## EyeLights_Bluefruit_Scroller - example from Adafruit
+
+The ADABox 020 comes with a code image that scrolls the text "Adafruit and Digikey ADABox 020" or something like that.
+I have not been able to find the exact code, but a close example is this from the Adafruit learning article (in the
+references below).  This also allows some control from the IOS app nad has an method to work around the Packet issue
+I found in combo.py for the feather_nrf52840_epress.  Unfortunately this not CircuitPython, but Arduino code.
+
+<b>TODO</b> 
+
+- [todo] get code from example
+- [todo] understand how scrolling works
+- [todo] slow, pause, stop scrolling
+- [todo] add bt cli
+- [todo] try monkey patch of Packet for combo.py??
+- [todo] try port to CP???
+
+
+
+
 ## eye_cli.py
 
 <b>TODO</b> 
 
+- [todo] <b>leverage EyeLights_Bluefruit_Scroller????</b>
 - [todo] base bt cli for eyelights
 - [todo] extended help
 - [todo] fonts
@@ -36,7 +56,7 @@ Some features I really don't care about:
 
 ## eye_board.py
 
-<b>TODO</b> 
+<b>TODO Ideas</b> 
 
 - [todo] eyelights as simple scoreboard
 - [todo] packaging?
@@ -50,3 +70,4 @@ Some features I really don't care about:
 
 https://learn.adafruit.com/adafruit-eyelights-led-glasses-and-driver/overview
 
+https://learn.adafruit.com/adafruit-eyelights-led-glasses-and-driver/bluetooth-message-scroller
