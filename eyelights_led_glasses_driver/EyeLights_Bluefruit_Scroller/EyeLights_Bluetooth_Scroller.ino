@@ -39,6 +39,11 @@ char message[51] = "Run Bluefruit Connect app"; // Scrolling message
 int16_t text_x;   // Message position on canvas
 int16_t text_min; // Leftmost position before restarting scroll
 
+// CLI_MODIFICATIONS
+bool text_pause = false;
+//float led_brighness = 1.0;
+//int32_t text_color = 0x00000000;
+
 BLEUart bleuart;  // Bluetooth low energy UART
 
 int8_t last_packet_type = 99; // Last BLE packet type, init to nonsense value
@@ -151,11 +156,16 @@ void loop() { // Repeat forever...
       }
       canvas->setTextColor(glasses.color565(glasses.Color(
         packetbuffer[2], packetbuffer[3], packetbuffer[4])));
+      // CLI_MODIFICATIONS - TODO - save color
       break;
      case 6: // Location
       Serial.println("Location");
       break;
      default: // -1
+      // CLI_MODIFICATIONS
+#if 0
+      handle_cli(&bleuart);
+#else
       // Packet is not one of the Bluefruit Connect types. Most programs
       // will ignore/reject it as not valud, but in this case we accept
       // it as a freeform string for the scrolling message.
@@ -175,6 +185,7 @@ void loop() { // Repeat forever...
       message[len] = 0; // End of string NUL char
       Serial.println(message);
       reposition_text(); // Reset text off right edge of canvas
+#endif
     }
     last_packet_type = type; // Save packet type for next pass
   } else {
@@ -182,9 +193,12 @@ void loop() { // Repeat forever...
   }
 
   canvas->fillScreen(0); // Clear the whole drawing canvas
-  // Update text to new position, and draw on canvas
-  if (--text_x < text_min) {  // If text scrolls off left edge,
-    text_x = canvas->width(); // reset position off right edge
+  // CLI_MODIFICATIONS
+  if (!text_pause) {
+    // Update text to new position, and draw on canvas
+    if (--text_x < text_min) {  // If text scrolls off left edge,
+      text_x = canvas->width(); // reset position off right edge
+    }
   }
   canvas->setCursor(text_x, canvas->height());
   canvas->print(message);
@@ -199,4 +213,29 @@ void reposition_text() {
   canvas->getTextBounds(message, 0, 0, (int16_t *)&ignore, (int16_t *)&ignore, &w, &ignore);
   text_x = canvas->width();
   text_min = -w; // Off left edge this many pixels
+}
+
+// CLI_MODIFICATIONS
+void help(BLEUart *ble) {
+  // TODO: how to write back ble->write()?
+
+  // NOTE: try to favor letters over numbers, 
+  //       and extra options instead of parameters,
+  //       those are easier from Bluefruit Connect app
+  Serial.println("h - help");
+  Serial.println("i - info");
+  Serial.println("p - pause/start scrolling");
+  //Serial.println("b - brighness <float> (current %f)", led_brighness);
+  Serial.println("s - scroll text <string>");
+  //Serial.println("r - scroll rate <float> (current %f)", text_rate);
+  //Serial.println("c - color <hex> (current 0x%4x)", text_color);
+
+}
+
+void info(BLEUart *ble) {
+
+}
+
+void handle_cli(BLEUart *ble) {
+
 }
