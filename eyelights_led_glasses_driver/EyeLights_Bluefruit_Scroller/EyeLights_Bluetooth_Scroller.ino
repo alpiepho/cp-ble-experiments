@@ -41,7 +41,8 @@ int16_t text_min; // Leftmost position before restarting scroll
 
 // CLI_MODIFICATIONS
 bool text_pause = false;
-//float led_brighness = 1.0;
+//float text_rate = 1.0; ???
+//float text_brighness = 1.0;
 //int32_t text_color = 0x00000000;
 
 BLEUart bleuart;  // Bluetooth low energy UART
@@ -217,25 +218,57 @@ void reposition_text() {
 
 // CLI_MODIFICATIONS
 void help(BLEUart *ble) {
-  // TODO: how to write back ble->write()?
-
   // NOTE: try to favor letters over numbers, 
   //       and extra options instead of parameters,
   //       those are easier from Bluefruit Connect app
+
+  // TODO: how to write back ble->write()?
   Serial.println("h - help");
   Serial.println("i - info");
-  Serial.println("p - pause/start scrolling");
-  //Serial.println("b - brighness <float> (current %f)", led_brighness);
   Serial.println("s - scroll text <string>");
+  Serial.println("p - pause/start scrolling (current %d)", text_pause);
   //Serial.println("r - scroll rate <float> (current %f)", text_rate);
+  //Serial.println("b - brighness <float> (current %f)", text_brighness);
   //Serial.println("c - color <hex> (current 0x%4x)", text_color);
 
 }
 
 void info(BLEUart *ble) {
-
+  // TODO: how to write back ble->write()?
+  Serial.println("text_x:        %d", text_x);
+  Serial.println("text_min:      %d", text_min);
+  Serial.println("text_pause:    %d", text_pause);
+  //Serial.println("text_rate:      %.2f", text_rate);
+  //Serial.println("text_brighness: %.2f", text_brighness);
+  //Serial.println("text_color:    0x%4x", text_color);
 }
 
 void handle_cli(BLEUart *ble) {
+  char option = packetbuffer[0]; // ie. "s this is message"  or "p"
 
+  switch (option) {
+    case 'i':
+      info(ble);
+      break;
+    case 'p':
+      text_pause = !text_pause;
+      break;
+    case 'b':
+      Serial.println("TODO - set brightness from float");
+      break;
+    case 'r':
+      Serial.println("TODO - set rate from float");
+      break;
+    case 's':
+      strncpy(message, (char *)packetbuffer+2, 50);
+      break;
+    case 'c':
+      Serial.println("TODO - set color from hex");
+      break;
+    default:
+      help(ble);
+      break;
+  }
+  // TODO: how to write back ble->write()?
+  Serial.println("option >");
 }
