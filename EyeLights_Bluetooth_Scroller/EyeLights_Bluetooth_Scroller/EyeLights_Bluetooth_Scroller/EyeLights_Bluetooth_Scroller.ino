@@ -35,7 +35,7 @@ GFXcanvas16 *canvas; // Pointer to glasses' canvas object
 // drawing functions there. 'glasses' is an object in itself,
 // so . is used when calling its functions.
 
-char message[51] = "Run Bluefruit Connect app"; // Scrolling message
+char message[51] = "OO OO OO OO O12345679"; // Scrolling message
 int16_t text_x;   // Message position on canvas
 int16_t text_min; // Leftmost position before restarting scroll
 
@@ -44,6 +44,8 @@ bool text_pause = false;
 //float text_rate = 1.0; ???
 //float text_brighness = 1.0;
 //int32_t text_color = 0x00000000;
+int16_t text_count = 0;
+int16_t text_delay = 2;
 
 BLEUart bleuart;  // Bluetooth low energy UART
 
@@ -164,7 +166,7 @@ void loop() { // Repeat forever...
       break;
      default: // -1
       // CLI_MODIFICATIONS
-#if 0
+#if 1
       handle_cli(&bleuart);
 #else
       // Packet is not one of the Bluefruit Connect types. Most programs
@@ -205,6 +207,14 @@ void loop() { // Repeat forever...
   canvas->print(message);
   glasses.scale(); // 1:3 downsample canvas to LED matrix
   glasses.show();  // MUST call show() to update matrix
+
+  text_count++;
+  if ((text_count % text_delay) == 0) {
+    //text_pause = false;
+  }
+  else {
+    //text_pause = true;    
+  }
 }
 
 // When new message text is assigned, call this to reset its position
@@ -212,7 +222,7 @@ void loop() { // Repeat forever...
 void reposition_text() {
   uint16_t w, h, ignore;
   canvas->getTextBounds(message, 0, 0, (int16_t *)&ignore, (int16_t *)&ignore, &w, &ignore);
-  text_x = canvas->width();
+  text_x = 0; //canvas->width();
   text_min = -w; // Off left edge this many pixels
 }
 
@@ -226,7 +236,7 @@ void help(BLEUart *ble) {
   Serial.println("h - help");
   Serial.println("i - info");
   Serial.println("s - scroll text <string>");
-  Serial.println("p - pause/start scrolling (current %d)", text_pause);
+  //Serial.println("p - pause/start scrolling (current %d)", text_pause);
   //Serial.println("r - scroll rate <float> (current %f)", text_rate);
   //Serial.println("b - brighness <float> (current %f)", text_brighness);
   //Serial.println("c - color <hex> (current 0x%4x)", text_color);
@@ -235,9 +245,9 @@ void help(BLEUart *ble) {
 
 void info(BLEUart *ble) {
   // TODO: how to write back ble->write()?
-  Serial.println("text_x:        %d", text_x);
-  Serial.println("text_min:      %d", text_min);
-  Serial.println("text_pause:    %d", text_pause);
+  //Serial.println("text_x:        %d", text_x);
+  //Serial.println("text_min:      %d", text_min);
+  //Serial.println("text_pause:    %d", text_pause);
   //Serial.println("text_rate:      %.2f", text_rate);
   //Serial.println("text_brighness: %.2f", text_brighness);
   //Serial.println("text_color:    0x%4x", text_color);
