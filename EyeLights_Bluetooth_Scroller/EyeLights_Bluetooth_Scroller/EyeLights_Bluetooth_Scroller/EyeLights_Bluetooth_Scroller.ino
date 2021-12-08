@@ -233,13 +233,25 @@ void help(BLEUart *ble) {
   //       those are easier from Bluefruit Connect app
 
   // TODO: how to write back ble->write()?
-  Serial.println("h - help");
-  Serial.println("i - info");
-  Serial.println("s - scroll text <string>");
+  //Serial.println("h - help");
+  //Serial.println("i - info");
+  //Serial.println("s - scroll text <string>");
   //Serial.println("p - pause/start scrolling (current %d)", text_pause);
   //Serial.println("r - scroll rate <float> (current %f)", text_rate);
   //Serial.println("b - brighness <float> (current %f)", text_brighness);
   //Serial.println("c - color <hex> (current 0x%4x)", text_color);
+
+  char *msg1 = "h - help\n";
+  char *msg2 = "i - info\n";
+  char *msg3 = "s - scroll text <string>\n";
+
+  ble->write(msg1, strlen(msg1));
+  ble->write(msg2, strlen(msg2));
+  ble->write(msg3, strlen(msg3));
+
+  Serial.print(msg1);
+  Serial.print(msg2);
+  Serial.print(msg3);
 
 }
 
