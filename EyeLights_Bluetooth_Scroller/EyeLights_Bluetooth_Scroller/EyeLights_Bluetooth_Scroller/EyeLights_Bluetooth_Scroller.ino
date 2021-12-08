@@ -41,11 +41,11 @@ int16_t text_min; // Leftmost position before restarting scroll
 
 // CLI_MODIFICATIONS
 bool text_pause = false;
-//float text_rate = 1.0; ???
-//float text_brighness = 1.0;
-//int32_t text_color = 0x00000000;
+float text_level = 1.0;
+int32_t text_color = 0x00000000;
 int16_t text_count = 0;
 int16_t text_delay = 2;
+char msg[40];
 
 BLEUart bleuart;  // Bluetooth low energy UART
 
@@ -232,42 +232,42 @@ void help(BLEUart *ble) {
   //       and extra options instead of parameters,
   //       those are easier from Bluefruit Connect app
 
-  // TODO: how to write back ble->write()?
-  //Serial.println("h - help");
-  //Serial.println("i - info");
-  //Serial.println("s - scroll text <string>");
-  //Serial.println("p - pause/start scrolling (current %d)", text_pause);
-  //Serial.println("r - scroll rate <float> (current %f)", text_rate);
-  //Serial.println("b - brighness <float> (current %f)", text_brighness);
-  //Serial.println("c - color <hex> (current 0x%4x)", text_color);
-
-  char *msg1 = "h - help\n";
-  char *msg2 = "i - info\n";
-  char *msg3 = "s - scroll text <string>\n";
-
-  ble->write(msg1, strlen(msg1));
-  ble->write(msg2, strlen(msg2));
-  ble->write(msg3, strlen(msg3));
-
-  Serial.print(msg1);
-  Serial.print(msg2);
-  Serial.print(msg3);
-
+  // ble->write only transfers 23 chars, so split up writes
+  sprintf(msg, "h - help\n");                           ble->write(msg, strlen(msg));
+  sprintf(msg, "i - info\n");                           ble->write(msg, strlen(msg));
+  sprintf(msg, "s - scroll <text>\n");                  ble->write(msg, strlen(msg));
+  sprintf(msg, "p - pause/start");                      ble->write(msg, strlen(msg));
+    sprintf(msg, " (current %d)\n", text_pause);        ble->write(msg, strlen(msg));
+  sprintf(msg, "r - rate <int>");                       ble->write(msg, strlen(msg));
+    sprintf(msg, " (current %d)\n", text_delay);        ble->write(msg, strlen(msg));
+  sprintf(msg, "b - brighness <float>");                ble->write(msg, strlen(msg));
+    sprintf(msg, " (current %.2f)\n", text_level);      ble->write(msg, strlen(msg));
+  sprintf(msg, "c - color <hex>");                      ble->write(msg, strlen(msg));
+    sprintf(msg, " (current 0x%08x)\n", text_color);    ble->write(msg, strlen(msg));
 }
 
 void info(BLEUart *ble) {
-  // TODO: how to write back ble->write()?
-  //Serial.println("text_x:        %d", text_x);
-  //Serial.println("text_min:      %d", text_min);
-  //Serial.println("text_pause:    %d", text_pause);
-  //Serial.println("text_rate:      %.2f", text_rate);
-  //Serial.println("text_brighness: %.2f", text_brighness);
-  //Serial.println("text_color:    0x%4x", text_color);
+  sprintf(msg, "text_x:        ");      ble->write(msg, strlen(msg));
+    sprintf(msg, "%d\n", text_x);       ble->write(msg, strlen(msg));
+  sprintf(msg, "text_min:      ");      ble->write(msg, strlen(msg));
+    sprintf(msg, "%d\n", text_min);     ble->write(msg, strlen(msg));
+  sprintf(msg, "text_pause:    ");      ble->write(msg, strlen(msg));
+    sprintf(msg, "%d\n", text_pause);   ble->write(msg, strlen(msg));
+  sprintf(msg, "text_rate:     ");      ble->write(msg, strlen(msg));
+    sprintf(msg, "%d\n", text_delay);   ble->write(msg, strlen(msg));
+  sprintf(msg, "text_level:    ");      ble->write(msg, strlen(msg));
+    sprintf(msg, "%.2f\n", text_level); ble->write(msg, strlen(msg));
+  sprintf(msg, "text_color:    ");      ble->write(msg, strlen(msg));
+    sprintf(msg, "0x%08x\n", text_min); ble->write(msg, strlen(msg));
 }
 
 void handle_cli(BLEUart *ble) {
   char option = packetbuffer[0]; // ie. "s this is message"  or "p"
+  char *ptr;
+  int itemp;
+  float ftemp;
 
+  ptr = (char *)packetbuffer+2;
   switch (option) {
     case 'i':
       info(ble);
@@ -276,21 +276,26 @@ void handle_cli(BLEUart *ble) {
       text_pause = !text_pause;
       break;
     case 'b':
-      Serial.println("TODO - set brightness from float");
+      ftemp = atof(ptr);
+      if (ftemp > 0 && ftemp <= 1.0) text_level = ftemp;
       break;
     case 'r':
-      Serial.println("TODO - set rate from float");
-      break;
+      itemp = atoi(ptr);
+      if (itemp >= 1 && itemp <= 100) text_delay = itemp;
+     break;
     case 's':
-      strncpy(message, (char *)packetbuffer+2, 50);
+      strncpy(message, ptr, 50);
       break;
     case 'c':
-      Serial.println("TODO - set color from hex");
+
+// TODO
+      sscanf(ptr, "%x", &itemp);
+      text_color = itemp;
       break;
     default:
       help(ble);
       break;
   }
-  // TODO: how to write back ble->write()?
-  Serial.println("option >");
+  sprintf(msg, "\noption > ");  ble->write(msg, strlen(msg));
+
 }
