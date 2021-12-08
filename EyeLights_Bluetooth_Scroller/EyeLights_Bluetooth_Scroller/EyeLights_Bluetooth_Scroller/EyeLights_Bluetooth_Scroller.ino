@@ -42,7 +42,7 @@ int16_t text_min; // Leftmost position before restarting scroll
 // CLI_MODIFICATIONS
 bool text_pause = false;
 float text_level = 1.0;
-int32_t text_color = 0x00000000;
+int32_t text_color = 0x00303030;
 int16_t text_count = 0;
 int16_t text_delay = 2;
 char msg[40];
@@ -159,7 +159,8 @@ void loop() { // Repeat forever...
       }
       canvas->setTextColor(glasses.color565(glasses.Color(
         packetbuffer[2], packetbuffer[3], packetbuffer[4])));
-      // CLI_MODIFICATIONS - TODO - save color
+      // CLI_MODIFICATIONS - save color
+      text_color = (packetbuffer[2] << 16) | (packetbuffer[3] << 8) | (packetbuffer[4] << 0);
       break;
      case 6: // Location
       Serial.println("Location");
@@ -236,6 +237,7 @@ void help(BLEUart *ble) {
   sprintf(msg, "h - help\n");                           ble->write(msg, strlen(msg));
   sprintf(msg, "i - info\n");                           ble->write(msg, strlen(msg));
   sprintf(msg, "s - scroll <text>\n");                  ble->write(msg, strlen(msg));
+    sprintf(msg, " (16 char max)\n");                   ble->write(msg, strlen(msg));
   sprintf(msg, "p - pause/start");                      ble->write(msg, strlen(msg));
     sprintf(msg, " (current %d)\n", text_pause);        ble->write(msg, strlen(msg));
   sprintf(msg, "r - rate <int>");                       ble->write(msg, strlen(msg));
@@ -247,25 +249,26 @@ void help(BLEUart *ble) {
 }
 
 void info(BLEUart *ble) {
-  sprintf(msg, "text_x:        ");      ble->write(msg, strlen(msg));
-    sprintf(msg, "%d\n", text_x);       ble->write(msg, strlen(msg));
-  sprintf(msg, "text_min:      ");      ble->write(msg, strlen(msg));
-    sprintf(msg, "%d\n", text_min);     ble->write(msg, strlen(msg));
-  sprintf(msg, "text_pause:    ");      ble->write(msg, strlen(msg));
-    sprintf(msg, "%d\n", text_pause);   ble->write(msg, strlen(msg));
-  sprintf(msg, "text_rate:     ");      ble->write(msg, strlen(msg));
-    sprintf(msg, "%d\n", text_delay);   ble->write(msg, strlen(msg));
-  sprintf(msg, "text_level:    ");      ble->write(msg, strlen(msg));
-    sprintf(msg, "%.2f\n", text_level); ble->write(msg, strlen(msg));
-  sprintf(msg, "text_color:    ");      ble->write(msg, strlen(msg));
-    sprintf(msg, "0x%08x\n", text_min); ble->write(msg, strlen(msg));
+  sprintf(msg, "text_x:        ");        ble->write(msg, strlen(msg));
+    sprintf(msg, "%d\n", text_x);         ble->write(msg, strlen(msg));
+  sprintf(msg, "text_min:      ");        ble->write(msg, strlen(msg));
+    sprintf(msg, "%d\n", text_min);       ble->write(msg, strlen(msg));
+  sprintf(msg, "text_pause:    ");        ble->write(msg, strlen(msg));
+    sprintf(msg, "%d\n", text_pause);     ble->write(msg, strlen(msg));
+  sprintf(msg, "text_rate:     ");        ble->write(msg, strlen(msg));
+    sprintf(msg, "%d\n", text_delay);     ble->write(msg, strlen(msg));
+  sprintf(msg, "text_level:    ");        ble->write(msg, strlen(msg));
+    sprintf(msg, "%.2f\n", text_level);   ble->write(msg, strlen(msg));
+  sprintf(msg, "text_color:    ");        ble->write(msg, strlen(msg));
+    sprintf(msg, "0x%08x\n", text_color); ble->write(msg, strlen(msg));
 }
 
 void handle_cli(BLEUart *ble) {
   char option = packetbuffer[0]; // ie. "s this is message"  or "p"
   char *ptr;
-  int itemp;
-  float ftemp;
+  int itemp = 0;
+  long int ltemp = 0;
+  float ftemp = 0;
 
   ptr = (char *)packetbuffer+2;
   switch (option) {
@@ -287,15 +290,23 @@ void handle_cli(BLEUart *ble) {
       strncpy(message, ptr, 50);
       break;
     case 'c':
-
-// TODO
-      sscanf(ptr, "%x", &itemp);
-      text_color = itemp;
+      ltemp = strtol(ptr, NULL, 16);
+      text_color = ltemp;
+      canvas->setTextColor(glasses.color565(
+        glasses.Color(
+          ((text_color & 0x00ff0000) >> 16), 
+          ((text_color & 0x0000ff00) >> 8), 
+          ((text_color & 0x000000ff) >> 0) 
+        )));
       break;
     default:
       help(ble);
       break;
   }
   sprintf(msg, "\noption > ");  ble->write(msg, strlen(msg));
-
 }
+
+// TODO text_brightness
+// TODO text_rate
+// TODO fixed letters points
+// TODO color zones/regions
