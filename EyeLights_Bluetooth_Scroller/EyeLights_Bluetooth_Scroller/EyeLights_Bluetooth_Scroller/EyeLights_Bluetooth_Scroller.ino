@@ -35,7 +35,7 @@ GFXcanvas16 *canvas; // Pointer to glasses' canvas object
 // drawing functions there. 'glasses' is an object in itself,
 // so . is used when calling its functions.
 
-char message[51] = "OO OO OO OO O12345679"; // Scrolling message
+char message[51] = "HELLO WORLD!"; // Scrolling message
 int16_t text_x;   // Message position on canvas
 int16_t text_min; // Leftmost position before restarting scroll
 
@@ -46,6 +46,9 @@ int32_t text_color = 0x00303030;
 int16_t text_count = 0;
 int16_t text_delay = 2;
 char msg[40];
+uint8_t r;
+uint8_t g;
+uint8_t b;
 
 BLEUart bleuart;  // Bluetooth low energy UART
 
@@ -118,6 +121,7 @@ void startAdv(void) {
 // MAIN LOOP --------------
 
 void loop() { // Repeat forever...
+  uint8_t text_on = 0;
   // The packet read timeout (9 ms here) also determines the text
   // scrolling speed -- if no data is received over BLE in that time,
   // the function exits and returns here with len=0.
@@ -157,10 +161,15 @@ void loop() { // Repeat forever...
       for (uint8_t i=2; i<=4; i++) {
         if (packetbuffer[i] < 0x20) packetbuffer[i] = 0x20;
       }
-      canvas->setTextColor(glasses.color565(glasses.Color(
-        packetbuffer[2], packetbuffer[3], packetbuffer[4])));
       // CLI_MODIFICATIONS - save color
       text_color = (packetbuffer[2] << 16) | (packetbuffer[3] << 8) | (packetbuffer[4] << 0);
+      r = packetbuffer[2];
+      g = packetbuffer[3];
+      b = packetbuffer[4];
+      r = (uint8_t)(text_level * r);
+      g = (uint8_t)(text_level * g);
+      b = (uint8_t)(text_level * b);
+      canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
      case 6: // Location
       Serial.println("Location");
@@ -197,25 +206,27 @@ void loop() { // Repeat forever...
   }
 
   canvas->fillScreen(0); // Clear the whole drawing canvas
+
   // CLI_MODIFICATIONS
-  if (!text_pause) {
+  text_on = !text_pause;
+  if (text_on) {
+    if ((text_count % text_delay) != 0) {
+      text_on = 0; // delay
+    }
+  }
+  text_count++;
+
+  if (text_on) {
     // Update text to new position, and draw on canvas
     if (--text_x < text_min) {  // If text scrolls off left edge,
       text_x = canvas->width(); // reset position off right edge
     }
   }
+  
   canvas->setCursor(text_x, canvas->height());
   canvas->print(message);
   glasses.scale(); // 1:3 downsample canvas to LED matrix
   glasses.show();  // MUST call show() to update matrix
-
-  text_count++;
-  if ((text_count % text_delay) == 0) {
-    //text_pause = false;
-  }
-  else {
-    //text_pause = true;    
-  }
 }
 
 // When new message text is assigned, call this to reset its position
@@ -281,6 +292,13 @@ void handle_cli(BLEUart *ble) {
     case 'b':
       ftemp = atof(ptr);
       if (ftemp > 0 && ftemp <= 1.0) text_level = ftemp;
+      r = ((text_color & 0x00ff0000) >> 16);
+      g = ((text_color & 0x0000ff00) >> 8);
+      b = ((text_color & 0x000000ff) >> 0);
+      r = (uint8_t)(text_level * r);
+      g = (uint8_t)(text_level * g);
+      b = (uint8_t)(text_level * b);
+      canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
     case 'r':
       itemp = atoi(ptr);
@@ -292,12 +310,13 @@ void handle_cli(BLEUart *ble) {
     case 'c':
       ltemp = strtol(ptr, NULL, 16);
       text_color = ltemp;
-      canvas->setTextColor(glasses.color565(
-        glasses.Color(
-          ((text_color & 0x00ff0000) >> 16), 
-          ((text_color & 0x0000ff00) >> 8), 
-          ((text_color & 0x000000ff) >> 0) 
-        )));
+      r = ((text_color & 0x00ff0000) >> 16);
+      g = ((text_color & 0x0000ff00) >> 8);
+      b = ((text_color & 0x000000ff) >> 0);
+      r = (uint8_t)(text_level * r);
+      g = (uint8_t)(text_level * g);
+      b = (uint8_t)(text_level * b);
+      canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
     default:
       help(ble);
@@ -306,7 +325,7 @@ void handle_cli(BLEUart *ble) {
   sprintf(msg, "\noption > ");  ble->write(msg, strlen(msg));
 }
 
-// TODO text_brightness
-// TODO text_rate
 // TODO fixed letters points
 // TODO color zones/regions
+// TODO refactor color setting
+// TODO refactor ble write
