@@ -18,6 +18,10 @@ return here to see what the extra Bluetooth layers do.
 #include <bluefruit.h>           // For Bluetooth communication
 #include <EyeLightsCanvasFont.h> // Smooth scrolly font for glasses
 
+#include <Adafruit_LIS3DH.h>     // For accelerometer
+#include <Adafruit_Sensor.h>     // For m/s^2 accel units
+
+
 // These items are over in the packetParser.cpp tab:
 extern uint8_t packetbuffer[];
 extern uint8_t readPacket(BLEUart *ble, uint16_t timeout);
@@ -53,6 +57,12 @@ uint8_t r;
 uint8_t g;
 uint8_t b;
 
+float    filtered_y;        // De-noised accelerometer reading
+bool     looking_down;      // Set true when glasses are oriented downward
+sensors_event_t event;      // For accelerometer conversion
+uint32_t last_tap_time = 0; // For accelerometer tap de-noising
+Adafruit_LIS3DH accel;
+
 BLEUart bleuart;  // Bluetooth low energy UART
 
 int8_t last_packet_type = 99; // Last BLE packet type, init to nonsense value
@@ -63,6 +73,17 @@ void setup() { // Runs once at program start...
 
   Serial.begin(115200);
   //while(!Serial);
+
+  // Configure accelerometer and get initial state
+  if (! accel.begin())   err("LIS3DH not found", 5);
+  accel.setClick(1, 100); // Set threshold for single tap
+  accel.getEvent(&event); // Current accel in m/s^2
+  // Check accelerometer to see if we've started in the looking-down state,
+  // set the target color (what we're aiming for) appropriately. Only the
+  // Y axis is needed for this.
+  filtered_y = event.acceleration.y;
+  looking_down = (filtered_y > 5.0);
+  Serial.println(filtered_y);
 
   // Configure and start the BLE UART service
   Bluefruit.begin();
@@ -124,6 +145,60 @@ void startAdv(void) {
 // MAIN LOOP --------------
 
 void loop() { // Repeat forever...
+
+
+  if (text_count % 1000) {
+    // The look-down detection only needs the accelerometer's Y axis.
+    // This works with the Glasses Driver mounted on either temple,
+    // with the glasses arms "open" (as when worn).
+    accel.getEvent(&event);
+    // Smooth the accelerometer reading the same way RGB colors are
+    // interpolated. This avoids false triggers from jostling around.
+    filtered_y = filtered_y * 0.97 + event.acceleration.y * 0.03;
+    //Serial.println(filtered_y);
+
+
+    // The threshold between "looking down" and "looking up" depends
+    // on which of those states we're currently in. This is an example
+    // of hysteresis in software...a change of direction requires a
+    // little extra push before it takes, which avoids oscillating if
+    // there was just a single threshold both ways.
+    if (looking_down) {       // Currently in the looking-down state...
+      (void)accel.getClick(); // Discard any taps while looking down
+      if (filtered_y < 3.5) { // Have we crossed the look-up threshold?
+        //target_color = colors[color_index]; // Back to list color
+        looking_down = false;               // We're looking up now!
+        Serial.println("looking_down 1 -> 0");
+      }
+    } else {                  // Currently in the looking-up state...
+      if (filtered_y > 5.0) { // Crossed the look-down threshold?
+        //target_color = looking_down_color; // Aim for white
+        looking_down = true;               // We're looking down now!
+        Serial.println("looking_down 0 -> 1");
+      } else if (accel.getClick()) {
+        // No look up/down change, but the accelerometer registered
+        // a tap. Compare this against the last time we sensed one,
+        // and only do things if it's been more than half a second.
+        // This avoids spurious double-taps that can occur no matter
+        // how carefully the tap threshold was set.
+        uint32_t now = millis();
+        uint32_t elapsed = now - last_tap_time;
+        if (elapsed > 500) {
+          // A good tap was detected. Cycle to the next color in
+          // the list and note the time of this tap.
+          //color_index = (color_index + 1) % NUM_COLORS;
+          //target_color = colors[color_index];
+          Serial.println("tap");
+          last_tap_time = now;
+        }
+      }
+    }
+
+
+    
+  }
+
+  
   uint8_t text_on = 0;
   // The packet read timeout (9 ms here) also determines the text
   // scrolling speed -- if no data is received over BLE in that time,
