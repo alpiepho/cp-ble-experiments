@@ -37,7 +37,9 @@ GFXcanvas16 *canvas; // Pointer to glasses' canvas object
 
 char message[51] = "HELLO WORLD!"; // Scrolling message
 int16_t text_x;   // Message position on canvas
+int16_t text_delta = -1; // Message position on canvas
 int16_t text_min; // Leftmost position before restarting scroll
+int16_t text_max; // Rightmost position before restarting scroll
 
 // CLI_MODIFICATIONS
 bool text_pause = false;
@@ -45,6 +47,7 @@ float text_level = 1.0;
 int32_t text_color = 0x00303030;
 int16_t text_count = 0;
 int16_t text_delay = 2;
+
 char msg[40];
 uint8_t r;
 uint8_t g;
@@ -163,12 +166,7 @@ void loop() { // Repeat forever...
       }
       // CLI_MODIFICATIONS - save color
       text_color = (packetbuffer[2] << 16) | (packetbuffer[3] << 8) | (packetbuffer[4] << 0);
-      r = packetbuffer[2];
-      g = packetbuffer[3];
-      b = packetbuffer[4];
-      r = (uint8_t)(text_level * r);
-      g = (uint8_t)(text_level * g);
-      b = (uint8_t)(text_level * b);
+      rgb_apply_level();
       canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
      case 6: // Location
@@ -196,7 +194,6 @@ void loop() { // Repeat forever...
         len = message_len + max_append;
       }
       message[len] = 0; // End of string NUL char
-      Serial.println(message);
       reposition_text(); // Reset text off right edge of canvas
 #endif
     }
@@ -218,8 +215,12 @@ void loop() { // Repeat forever...
 
   if (text_on) {
     // Update text to new position, and draw on canvas
-    if (--text_x < text_min) {  // If text scrolls off left edge,
+    text_x += text_delta;
+    if (text_x < text_min) {  // If text scrolls off left edge,
       text_x = canvas->width(); // reset position off right edge
+    }
+    if (text_x > text_max) {  // If text scrolls off right edge,
+      text_x = -12 * strlen(message); // estimate reset position off left edge
     }
   }
   
@@ -234,44 +235,83 @@ void loop() { // Repeat forever...
 void reposition_text() {
   uint16_t w, h, ignore;
   canvas->getTextBounds(message, 0, 0, (int16_t *)&ignore, (int16_t *)&ignore, &w, &ignore);
-  text_x = 0; //canvas->width();
+  if (text_delta < 0)
+    text_x = canvas->width();
+  else
+    text_x = -12 * strlen(message);
   text_min = -w; // Off left edge this many pixels
+  text_max = 12 * strlen(message); // estimate Off right edge this many pixels
 }
 
 // CLI_MODIFICATIONS
+void ble_print__(BLEUart *ble, char *text) {
+  sprintf(msg, text);
+  ble->write(msg, strlen(msg));
+}
+
+void ble_print_s(BLEUart *ble, char *text, char *value) {
+  sprintf(msg, text, value);
+  ble->write(msg, strlen(msg));
+}
+
+void ble_print_i(BLEUart *ble, char *text, int value) {
+  sprintf(msg, text, value);
+  ble->write(msg, strlen(msg));
+}
+
+void ble_print_f(BLEUart *ble, char *text, float value) {
+  sprintf(msg, text, value);
+  ble->write(msg, strlen(msg));
+}
+
 void help(BLEUart *ble) {
   // NOTE: try to favor letters over numbers, 
   //       and extra options instead of parameters,
   //       those are easier from Bluefruit Connect app
 
   // ble->write only transfers 23 chars, so split up writes
-  sprintf(msg, "h - help\n");                           ble->write(msg, strlen(msg));
-  sprintf(msg, "i - info\n");                           ble->write(msg, strlen(msg));
-  sprintf(msg, "s - scroll <text>\n");                  ble->write(msg, strlen(msg));
-    sprintf(msg, " (16 char max)\n");                   ble->write(msg, strlen(msg));
-  sprintf(msg, "p - pause/start");                      ble->write(msg, strlen(msg));
-    sprintf(msg, " (current %d)\n", text_pause);        ble->write(msg, strlen(msg));
-  sprintf(msg, "r - rate <int>");                       ble->write(msg, strlen(msg));
-    sprintf(msg, " (current %d)\n", text_delay);        ble->write(msg, strlen(msg));
-  sprintf(msg, "b - brighness <float>");                ble->write(msg, strlen(msg));
-    sprintf(msg, " (current %.2f)\n", text_level);      ble->write(msg, strlen(msg));
-  sprintf(msg, "c - color <hex>");                      ble->write(msg, strlen(msg));
-    sprintf(msg, " (current 0x%08x)\n", text_color);    ble->write(msg, strlen(msg));
+  ble_print__(ble, "h - help\n");
+  ble_print__(ble, "i - info\n");
+  ble_print__(ble, "t - scroll <text>\n");
+    ble_print__(ble, " (16 char max)\n");
+  ble_print__(ble, "p - pause/start");
+    ble_print_i(ble, " (current %d)\n", text_pause);
+  ble_print__(ble, "r - rate <int>");
+    ble_print_i(ble, " (current %d)\n", text_delay);
+  ble_print__(ble, "d - toggle direction");
+    ble_print_i(ble, " (current %d)\n", text_delta);
+  ble_print__(ble, "b - brighness <float>");
+    ble_print_f(ble, " (current %.2f)\n", text_level);
+  ble_print__(ble, "c - color <hex>");
+    ble_print_i(ble, " (current 0x%08x)\n", text_color);
 }
 
 void info(BLEUart *ble) {
-  sprintf(msg, "text_x:        ");        ble->write(msg, strlen(msg));
-    sprintf(msg, "%d\n", text_x);         ble->write(msg, strlen(msg));
-  sprintf(msg, "text_min:      ");        ble->write(msg, strlen(msg));
-    sprintf(msg, "%d\n", text_min);       ble->write(msg, strlen(msg));
-  sprintf(msg, "text_pause:    ");        ble->write(msg, strlen(msg));
-    sprintf(msg, "%d\n", text_pause);     ble->write(msg, strlen(msg));
-  sprintf(msg, "text_rate:     ");        ble->write(msg, strlen(msg));
-    sprintf(msg, "%d\n", text_delay);     ble->write(msg, strlen(msg));
-  sprintf(msg, "text_level:    ");        ble->write(msg, strlen(msg));
-    sprintf(msg, "%.2f\n", text_level);   ble->write(msg, strlen(msg));
-  sprintf(msg, "text_color:    ");        ble->write(msg, strlen(msg));
-    sprintf(msg, "0x%08x\n", text_color); ble->write(msg, strlen(msg));
+  ble_print__(ble, "text:          ");    
+    ble_print_s(ble, "%s\n", message);
+  ble_print__(ble, "text_x:        ");    
+    ble_print_i(ble, "%d\n", text_x);
+  ble_print__(ble, "text_min:      ");
+    ble_print_i(ble, "%d\n", text_min);
+  ble_print__(ble, "text_max:      ");
+    ble_print_i(ble, "%d\n", text_max);
+  ble_print__(ble, "text_pause:    ");
+    ble_print_i(ble, "%d\n", text_pause);
+  ble_print__(ble, "text_rate:     ");
+    ble_print_i(ble, "%d\n", text_delay);
+  ble_print__(ble, "text_level:    ");
+    ble_print_f(ble, "%.2f\n", text_level);
+  ble_print__(ble, "text_color:    ");
+    ble_print_i(ble, "0x%08x\n", text_color);
+}
+
+void rgb_apply_level() {
+  r = ((text_color & 0x00ff0000) >> 16);
+  g = ((text_color & 0x0000ff00) >> 8);
+  b = ((text_color & 0x000000ff) >> 0);
+  r = (uint8_t)(text_level * r);
+  g = (uint8_t)(text_level * g);
+  b = (uint8_t)(text_level * b);
 }
 
 void handle_cli(BLEUart *ble) {
@@ -286,36 +326,35 @@ void handle_cli(BLEUart *ble) {
     case 'i':
       info(ble);
       break;
+    case 't':
+      strncpy(message, ptr, 50);
+      message[strcspn(message, "\n")] = 0;
+      ptr = message;
+      while (*ptr) {
+        *ptr = toupper((unsigned char) *ptr);
+        ptr++;
+      }
+      break;
     case 'p':
       text_pause = !text_pause;
-      break;
-    case 'b':
-      ftemp = atof(ptr);
-      if (ftemp > 0 && ftemp <= 1.0) text_level = ftemp;
-      r = ((text_color & 0x00ff0000) >> 16);
-      g = ((text_color & 0x0000ff00) >> 8);
-      b = ((text_color & 0x000000ff) >> 0);
-      r = (uint8_t)(text_level * r);
-      g = (uint8_t)(text_level * g);
-      b = (uint8_t)(text_level * b);
-      canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
     case 'r':
       itemp = atoi(ptr);
       if (itemp >= 1 && itemp <= 100) text_delay = itemp;
      break;
-    case 's':
-      strncpy(message, ptr, 50);
+    case 'd':
+    text_delta = -1 * text_delta;
+     break;
+    case 'b':
+      ftemp = atof(ptr);
+      if (ftemp > 0 && ftemp <= 1.0) text_level = ftemp;
+      rgb_apply_level();
+      canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
     case 'c':
       ltemp = strtol(ptr, NULL, 16);
       text_color = ltemp;
-      r = ((text_color & 0x00ff0000) >> 16);
-      g = ((text_color & 0x0000ff00) >> 8);
-      b = ((text_color & 0x000000ff) >> 0);
-      r = (uint8_t)(text_level * r);
-      g = (uint8_t)(text_level * g);
-      b = (uint8_t)(text_level * b);
+      rgb_apply_level();
       canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
     default:
@@ -325,7 +364,14 @@ void handle_cli(BLEUart *ble) {
   sprintf(msg, "\noption > ");  ble->write(msg, strlen(msg));
 }
 
-// TODO fixed letters points
-// TODO color zones/regions
-// TODO refactor color setting
-// TODO refactor ble write
+
+
+
+// TODO fixed vs scrolling mode
+// TODO p turns on scrolling "over" numbers
+// TODO n "nn nn" disables scrolling
+// TODO also allow s
+// TODO is text color preserved after lines drawn?
+// TODO 1/2 set color region for next color command, applies to numbers
+
+// TODO refactor cli as library file

@@ -37,7 +37,7 @@ GFXcanvas16 *canvas; // Pointer to glasses' canvas object
 
 char message[51] = "HELLO WORLD!"; // Scrolling message
 int16_t text_x;   // Message position on canvas
-int16_t text_delta = 1; // Message position on canvas
+int16_t text_delta = -1; // Message position on canvas
 int16_t text_min; // Leftmost position before restarting scroll
 int16_t text_max; // Rightmost position before restarting scroll
 
@@ -194,7 +194,6 @@ void loop() { // Repeat forever...
         len = message_len + max_append;
       }
       message[len] = 0; // End of string NUL char
-      Serial.println(message);
       reposition_text(); // Reset text off right edge of canvas
 #endif
     }
@@ -221,7 +220,7 @@ void loop() { // Repeat forever...
       text_x = canvas->width(); // reset position off right edge
     }
     if (text_x > text_max) {  // If text scrolls off right edge,
-      text_x = -1 * canvas->width(); // reset position off left edge
+      text_x = -12 * strlen(message); // estimate reset position off left edge
     }
   }
   
@@ -236,9 +235,12 @@ void loop() { // Repeat forever...
 void reposition_text() {
   uint16_t w, h, ignore;
   canvas->getTextBounds(message, 0, 0, (int16_t *)&ignore, (int16_t *)&ignore, &w, &ignore);
-  text_x = 0; //canvas->width();
+  if (text_delta < 0)
+    text_x = canvas->width();
+  else
+    text_x = -12 * strlen(message);
   text_min = -w; // Off left edge this many pixels
-  text_max = w;  // Off right edge this many pixels
+  text_max = 12 * strlen(message); // estimate Off right edge this many pixels
 }
 
 // CLI_MODIFICATIONS
@@ -277,30 +279,30 @@ void help(BLEUart *ble) {
   ble_print__(ble, "r - rate <int>");
     ble_print_i(ble, " (current %d)\n", text_delay);
   ble_print__(ble, "d - toggle direction");
-    ble_print_i(ble, " (current %d)\n", text_delay);
+    ble_print_i(ble, " (current %d)\n", text_delta);
   ble_print__(ble, "b - brighness <float>");
     ble_print_f(ble, " (current %.2f)\n", text_level);
   ble_print__(ble, "c - color <hex>");
-    ble_print_(ble, " (current 0x%08x)\n", text_color);
+    ble_print_i(ble, " (current 0x%08x)\n", text_color);
 }
 
 void info(BLEUart *ble) {
-  ble_print__(msg, "text:          ");    
-    ble_print_s(msg, "%s\n", text);
-  ble_print__(msg, "text_x:        ");    
-    ble_print_i(msg, "%d\n", text_x);
-  ble_print__(msg, "text_min:      ");
-    ble_print_i(msg, "%d\n", text_min);
-  ble_print__(msg, "text_max:      ");
-    ble_print_i(msg, "%d\n", text_max);
-  ble_print__(msg, "text_pause:    ");
-    ble_print_i(msg, "%d\n", text_pause);
-  ble_print__(msg, "text_rate:     ");
-    ble_print_i(msg, "%d\n", text_delay);
-  ble_print__(msg, "text_level:    ");
-    ble_print_f(msg, "%.2f\n", text_level);
-  ble_print__(msg, "text_color:    ");
-    ble_print_i(msg, "0x%08x\n", text_color);
+  ble_print__(ble, "text:          ");    
+    ble_print_s(ble, "%s\n", message);
+  ble_print__(ble, "text_x:        ");    
+    ble_print_i(ble, "%d\n", text_x);
+  ble_print__(ble, "text_min:      ");
+    ble_print_i(ble, "%d\n", text_min);
+  ble_print__(ble, "text_max:      ");
+    ble_print_i(ble, "%d\n", text_max);
+  ble_print__(ble, "text_pause:    ");
+    ble_print_i(ble, "%d\n", text_pause);
+  ble_print__(ble, "text_rate:     ");
+    ble_print_i(ble, "%d\n", text_delay);
+  ble_print__(ble, "text_level:    ");
+    ble_print_f(ble, "%.2f\n", text_level);
+  ble_print__(ble, "text_color:    ");
+    ble_print_i(ble, "0x%08x\n", text_color);
 }
 
 void rgb_apply_level() {
@@ -311,7 +313,6 @@ void rgb_apply_level() {
   g = (uint8_t)(text_level * g);
   b = (uint8_t)(text_level * b);
 }
-
 
 void handle_cli(BLEUart *ble) {
   char option = packetbuffer[0]; // ie. "s this is message"  or "p"
@@ -327,6 +328,12 @@ void handle_cli(BLEUart *ble) {
       break;
     case 't':
       strncpy(message, ptr, 50);
+      message[strcspn(message, "\n")] = 0;
+      ptr = message;
+      while (*ptr) {
+        *ptr = toupper((unsigned char) *ptr);
+        ptr++;
+      }
       break;
     case 'p':
       text_pause = !text_pause;
@@ -368,4 +375,3 @@ void handle_cli(BLEUart *ble) {
 // TODO 1/2 set color region for next color command, applies to numbers
 
 // TODO refactor cli as library file
-
