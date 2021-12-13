@@ -39,32 +39,43 @@ GFXcanvas16 *canvas; // Pointer to glasses' canvas object
 // drawing functions there. 'glasses' is an object in itself,
 // so . is used when calling its functions.
 
-char message[51] = "HELLO WORLD!"; // Scrolling message
+char message[51] = "HELLO!"; // Scrolling message
 int16_t text_x;   // Message position on canvas
 int16_t text_delta = -1; // Message position on canvas
 int16_t text_min; // Leftmost position before restarting scroll
 int16_t text_max; // Rightmost position before restarting scroll
 
-// CLI_MODIFICATIONS
+// General variables
+char msg[40];
+char msg2[40];
+uint8_t r;
+uint8_t g;
+uint8_t b;
+
+// Scrolling text
 bool text_pause = false;
 float text_level = 1.0;
 int32_t text_color = 0x00303030;
 int16_t text_count = 0;
 int16_t text_delay = 2;
 
-char msg[40];
-uint8_t r;
-uint8_t g;
-uint8_t b;
+// Fixed number text
+char number_value_1[3] = "00";      // left number
+char number_value_2[3] = "00";      // right number
+uint8_t number_color_pending = 0;   // 1-shot for setting left/right colors
+int32_t number_color1 = 0x00303030;
+int32_t number_color2 = 0x00303030;
 
+// Tilt and tap
+bool looking_enabled = true;
 float    filtered_y;        // De-noised accelerometer reading
 bool     looking_down;      // Set true when glasses are oriented downward
 sensors_event_t event;      // For accelerometer conversion
 uint32_t last_tap_time = 0; // For accelerometer tap de-noising
 Adafruit_LIS3DH accel;
 
+// Bluetooth
 BLEUart bleuart;  // Bluetooth low energy UART
-
 int8_t last_packet_type = 99; // Last BLE packet type, init to nonsense value
 
 // ONE-TIME SETUP ---------
@@ -145,8 +156,6 @@ void startAdv(void) {
 // MAIN LOOP --------------
 
 void loop() { // Repeat forever...
-
-
   if (text_count % 1000) {
     // The look-down detection only needs the accelerometer's Y axis.
     // This works with the Glasses Driver mounted on either temple,
@@ -230,19 +239,41 @@ void loop() { // Repeat forever...
       Serial.println("Button");
       break;
      case 5: // Color
-      Serial.println("Color");
-      // packetbuffer[2] through [4] contain R, G, B byte values.
-      // Because the drawing canvas uses lower-precision '565' color,
-      // and because glasses.scale() applies gamma correction and may
-      // quantize the dimmest colors to 0, set a brightness floor here
-      // so text isn't invisible.
-      for (uint8_t i=2; i<=4; i++) {
-        if (packetbuffer[i] < 0x20) packetbuffer[i] = 0x20;
+      {
+        Serial.println("Color");
+        // packetbuffer[2] through [4] contain R, G, B byte values.
+        // Because the drawing canvas uses lower-precision '565' color,
+        // and because glasses.scale() applies gamma correction and may
+        // quantize the dimmest colors to 0, set a brightness floor here
+        // so text isn't invisible.
+        for (uint8_t i=2; i<=4; i++) {
+          if (packetbuffer[i] < 0x20) packetbuffer[i] = 0x20;
+        }
+        // CLI_MODIFICATIONS - save color
+        long int ltemp = 0;
+        ltemp = (packetbuffer[2] << 16) | (packetbuffer[3] << 8) | (packetbuffer[4] << 0);
+        rgb_apply_level(ltemp);
+        bool draw_numbers = false;
+        switch (number_color_pending) {
+          case 1:
+            number_color1 = ltemp;
+            draw_numbers = true;
+            break;
+          case 2:
+            number_color2 = ltemp;
+            draw_numbers = true;
+            break;
+          default:
+            text_color = ltemp;
+            canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
+        }
+        number_color_pending = 0;
+
+        if (draw_numbers) {
+          // TODO draw numbers
+          text_pause = true;
+        }
       }
-      // CLI_MODIFICATIONS - save color
-      text_color = (packetbuffer[2] << 16) | (packetbuffer[3] << 8) | (packetbuffer[4] << 0);
-      rgb_apply_level();
-      canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
      case 6: // Location
       Serial.println("Location");
@@ -299,10 +330,33 @@ void loop() { // Repeat forever...
     }
   }
   
-  canvas->setCursor(text_x, canvas->height());
-  canvas->print(message);
-  glasses.scale(); // 1:3 downsample canvas to LED matrix
-  glasses.show();  // MUST call show() to update matrix
+  if (!looking_enabled || !looking_down) {
+    //canvas->setCursor(text_x, canvas->height());
+    //canvas->print(message);
+    //glasses.scale(); // 1:3 downsample canvas to LED matrix
+  }
+
+  glasses.left_ring.fill(0);
+  glasses.right_ring.fill(0);
+
+  uint32_t pixel_color = 0x00303030;
+  digit(2, 1, pixel_color);
+  digit(4, 2, pixel_color);
+  digit(2, 3, pixel_color);
+  digit(5, 4, pixel_color);
+
+
+  glasses.left_ring.setPixelColor(18, 0x00550000);
+  glasses.left_ring.setPixelColor(19, 0x00550000);
+
+  glasses.right_ring.setPixelColor(5, 0x00555500);
+  glasses.right_ring.setPixelColor(6, 0x00555500);
+
+  //glasses.drawPixel(8, 2, pixel_color);
+  //glasses.drawPixel(9, 2, pixel_color);
+
+  
+  glasses.show();  // MUST call 0x00ffffff() to update matrix
 }
 
 // When new message text is assigned, call this to reset its position
@@ -359,6 +413,13 @@ void help(BLEUart *ble) {
     ble_print_f(ble, " (current %.2f)\n", text_level);
   ble_print__(ble, "c - color <hex>");
     ble_print_i(ble, " (current 0x%08x)\n", text_color);
+  ble_print__(ble, "a - toggle tilt");
+    ble_print_i(ble, " (current %d)\n", looking_enabled);
+  ble_print__(ble, "n - numbers ie. 01 05");
+    sprintf(msg2, " (current %s %s)", number_value_1, number_value_2);
+    ble_print_s(ble, " %s\n", msg2);
+  ble_print__(ble, "1 - set color 1\n");
+  ble_print__(ble, "2 - set color 2\n");
 }
 
 void info(BLEUart *ble) {
@@ -378,12 +439,19 @@ void info(BLEUart *ble) {
     ble_print_f(ble, "%.2f\n", text_level);
   ble_print__(ble, "text_color:    ");
     ble_print_i(ble, "0x%08x\n", text_color);
+  ble_print__(ble, "numbers:       ");    
+    sprintf(msg2, " (current %s %s)", number_value_1, number_value_2);
+    ble_print_s(ble, " %s\n", msg2);
+  ble_print__(ble, "number_color1: ");
+    ble_print_i(ble, "0x%08x\n", number_color1);
+  ble_print__(ble, "number_color2: ");
+    ble_print_i(ble, "0x%08x\n", number_color2);
 }
 
-void rgb_apply_level() {
-  r = ((text_color & 0x00ff0000) >> 16);
-  g = ((text_color & 0x0000ff00) >> 8);
-  b = ((text_color & 0x000000ff) >> 0);
+void rgb_apply_level(int32_t given_color) {
+  r = ((given_color & 0x00ff0000) >> 16);
+  g = ((given_color & 0x0000ff00) >> 8);
+  b = ((given_color & 0x000000ff) >> 0);
   r = (uint8_t)(text_level * r);
   g = (uint8_t)(text_level * g);
   b = (uint8_t)(text_level * b);
@@ -395,6 +463,7 @@ void handle_cli(BLEUart *ble) {
   int itemp = 0;
   long int ltemp = 0;
   float ftemp = 0;
+  bool draw_numbers = false;
 
   ptr = (char *)packetbuffer+2;
   switch (option) {
@@ -418,34 +487,279 @@ void handle_cli(BLEUart *ble) {
       if (itemp >= 1 && itemp <= 100) text_delay = itemp;
      break;
     case 'd':
-    text_delta = -1 * text_delta;
+      text_delta = -1 * text_delta;
      break;
     case 'b':
       ftemp = atof(ptr);
       if (ftemp > 0 && ftemp <= 1.0) text_level = ftemp;
-      rgb_apply_level();
+      rgb_apply_level(text_color);
       canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
       break;
     case 'c':
       ltemp = strtol(ptr, NULL, 16);
-      text_color = ltemp;
-      rgb_apply_level();
-      canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
+      rgb_apply_level(ltemp);
+      switch (number_color_pending) {
+        case 1:
+          number_color1 = ltemp;
+          draw_numbers = true;
+          break;
+        case 2:
+          number_color2 = ltemp;
+          draw_numbers = true;
+          break;
+        default:
+          text_color = ltemp;
+          canvas->setTextColor(glasses.color565(glasses.Color(r, g, b)));
+      }
+      number_color_pending = 0;
+      break;
+    case 'a':
+      looking_enabled = !looking_enabled;
+     break;
+    case 'n':
+      // TODO parse ptr for color_value1 and color_value2
+      // strncpy(message, ptr, 50);
+      // message[strcspn(message, "\n")] = 0;
+      // ptr = message;
+      // while (*ptr) {
+      //   *ptr = toupper((unsigned char) *ptr);
+      //   ptr++;
+      // }
+      draw_numbers = true;
+      break;
+    case '1':
+      number_color_pending = 1;
+      break;
+    case '2':
+      number_color_pending = 2;
       break;
     default:
       help(ble);
       break;
   }
+
+  if (draw_numbers) {
+    // TODO draw numbers
+    text_pause = true;  // numbers mode overrides scroll
+    // TODO function to draw lines digit at given slot ie.  12 34
+    // TODO parse digits of color_value1 and draw digit1 and digit2, with number_color1
+    // TODO parse digits of color_value2 and draw digit3 and digit4, with number_color2
+  }
+
   sprintf(msg, "\noption > ");  ble->write(msg, strlen(msg));
 }
 
 
+void digit(int value, int slot, int32_t pixel_color) {
+  int x_offset = 0;
+  switch (slot) {
+    case 1: x_offset = 0; break;
+    case 2: x_offset = 4; break;
+    case 3: x_offset = 9; break;
+    case 4: x_offset = 13; break;
+  }
+  switch (value) {
+    case 0: digit0(x_offset, pixel_color); break;
+    case 1: digit1(x_offset, pixel_color); break;
+    case 2: digit2(x_offset, pixel_color); break;
+    case 3: digit3(x_offset, pixel_color); break;
+    case 4: digit4(x_offset, pixel_color); break;
+    case 5: digit5(x_offset, pixel_color); break;
+    case 6: digit6(x_offset, pixel_color); break;
+    case 7: digit7(x_offset, pixel_color); break;
+    case 8: digit8(x_offset, pixel_color); break;
+    case 9: digit9(x_offset, pixel_color); break;
+  }
+}
 
+void digit0(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  glasses.drawPixel(x_offset+1, 1, pixel_color);
+  glasses.drawPixel(x_offset+1, 2, pixel_color);
+  glasses.drawPixel(x_offset+1, 3, pixel_color);
+  glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+2, 0, pixel_color);
+  //glasses.drawPixel(x_offset+2, 2, pixel_color);
+  glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit1(int x_offset, int32_t pixel_color) {
+  //glasses.drawPixel(x_offset+1, 0, pixel_color);
+  //glasses.drawPixel(x_offset+1, 1, pixel_color);
+  //glasses.drawPixel(x_offset+1, 2, pixel_color);
+  //glasses.drawPixel(x_offset+1, 3, pixel_color);
+  //glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  //glasses.drawPixel(x_offset+2, 0, pixel_color);
+  //glasses.drawPixel(x_offset+2, 2, pixel_color);
+  //glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit2(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  //glasses.drawPixel(x_offset+1, 1, pixel_color);
+  glasses.drawPixel(x_offset+1, 2, pixel_color);
+  glasses.drawPixel(x_offset+1, 3, pixel_color);
+  glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  //glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+2, 0, pixel_color);
+  glasses.drawPixel(x_offset+2, 2, pixel_color);
+  glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit3(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  //glasses.drawPixel(x_offset+1, 1, pixel_color);
+  glasses.drawPixel(x_offset+1, 2, pixel_color);
+  //glasses.drawPixel(x_offset+1, 3, pixel_color);
+  glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+2, 0, pixel_color);
+  glasses.drawPixel(x_offset+2, 2, pixel_color);
+  glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit4(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  glasses.drawPixel(x_offset+1, 1, pixel_color);
+  glasses.drawPixel(x_offset+1, 2, pixel_color);
+  //glasses.drawPixel(x_offset+1, 3, pixel_color);
+  //glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  //glasses.drawPixel(x_offset+2, 0, pixel_color);
+  glasses.drawPixel(x_offset+2, 2, pixel_color);
+  //glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit5(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  glasses.drawPixel(x_offset+1, 1, pixel_color);
+  glasses.drawPixel(x_offset+1, 2, pixel_color);
+  //glasses.drawPixel(x_offset+1, 3, pixel_color);
+  glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  //glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+2, 0, pixel_color);
+  glasses.drawPixel(x_offset+2, 2, pixel_color);
+  glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit6(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  glasses.drawPixel(x_offset+1, 1, pixel_color);
+  glasses.drawPixel(x_offset+1, 2, pixel_color);
+  glasses.drawPixel(x_offset+1, 3, pixel_color);
+  glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  //glasses.drawPixel(x_offset+3, 0, pixel_color);
+  //glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  //glasses.drawPixel(x_offset+2, 0, pixel_color);
+  glasses.drawPixel(x_offset+2, 2, pixel_color);
+  glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit7(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  //glasses.drawPixel(x_offset+1, 1, pixel_color);
+  //glasses.drawPixel(x_offset+1, 2, pixel_color);
+  //glasses.drawPixel(x_offset+1, 3, pixel_color);
+  //glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+2, 0, pixel_color);
+  //glasses.drawPixel(x_offset+2, 2, pixel_color);
+  //glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit8(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  glasses.drawPixel(x_offset+1, 1, pixel_color);
+  glasses.drawPixel(x_offset+1, 2, pixel_color);
+  glasses.drawPixel(x_offset+1, 3, pixel_color);
+  glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+2, 0, pixel_color);
+  glasses.drawPixel(x_offset+2, 2, pixel_color);
+  glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+void digit9(int x_offset, int32_t pixel_color) {
+  glasses.drawPixel(x_offset+1, 0, pixel_color);
+  glasses.drawPixel(x_offset+1, 1, pixel_color);
+  glasses.drawPixel(x_offset+1, 2, pixel_color);
+  //glasses.drawPixel(x_offset+1, 3, pixel_color);
+  //glasses.drawPixel(x_offset+1, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+3, 0, pixel_color);
+  glasses.drawPixel(x_offset+3, 1, pixel_color);
+  glasses.drawPixel(x_offset+3, 2, pixel_color);
+  glasses.drawPixel(x_offset+3, 3, pixel_color);
+  glasses.drawPixel(x_offset+3, 4, pixel_color);
+
+  glasses.drawPixel(x_offset+2, 0, pixel_color);
+  glasses.drawPixel(x_offset+2, 2, pixel_color);
+  //glasses.drawPixel(x_offset+2, 4, pixel_color);
+}
+
+
+
+// TODO turon off if looking down
+// TODO option to disable tilt
 
 // TODO fixed vs scrolling mode
 // TODO p turns on scrolling "over" numbers
 // TODO n "nn nn" disables scrolling
-// TODO also allow s
 // TODO is text color preserved after lines drawn?
 // TODO 1/2 set color region for next color command, applies to numbers
 
