@@ -68,6 +68,9 @@ int32_t number_color2 = 0x00303030;
 
 uint8_t button_pending = 0;
 
+int32_t marker_color = 0x00303030;
+uint8_t marker = 0;
+
 // Tilt and tap
 float    filtered_y;        // De-noised accelerometer reading
 bool     looking_down;      // Set true when glasses are oriented downward
@@ -246,6 +249,7 @@ void loop() { // Repeat forever...
             number_color_pending = 2;
             break;
           case '3': 
+            number_color_pending = 3;
             break;
           case '4': 
             break;
@@ -280,9 +284,11 @@ void loop() { // Repeat forever...
             button_pending = 0;
             break;
           case '7': // left
+            marker = 1;
             button_pending = 1;
             break;
           case '8': // right
+            marker = 2;
             button_pending = 2;
             break;
         }
@@ -309,6 +315,9 @@ void loop() { // Repeat forever...
             break;
           case 2:
             number_color2 = ltemp;
+            break;
+          case 3:
+            marker_color = ltemp;
             break;
           default:
             text_color = ltemp;
@@ -365,6 +374,7 @@ void loop() { // Repeat forever...
   if (!looking_down) {
     if (number_enabled) {
       show_numbers();
+      show_markers();
     }
     else {
       show_text();
@@ -431,6 +441,7 @@ void help(BLEUart *ble) {
     ble_print_s(ble, " %s\n", msg2);
   ble_print__(ble, "1 - set color 1\n");
   ble_print__(ble, "2 - set color 2\n");
+  ble_print__(ble, "3 - marker color\n");
 }
 
 void info(BLEUart *ble) {
@@ -449,6 +460,8 @@ void info(BLEUart *ble) {
     ble_print_i(ble, "0x%08x\n", number_color1);
   ble_print__(ble, "number_color2: ");
     ble_print_i(ble, "0x%08x\n", number_color2);
+  ble_print__(ble, "marker_color: ");
+    ble_print_i(ble, "0x%08x\n", marker_color);
 }
 
 void rgb_apply_level(int32_t given_color) {
@@ -484,6 +497,7 @@ void handle_cli(BLEUart *ble) {
         }
       }
       button_pending = 0;
+      marker = 0;
       break;
     case 'p':
       text_pause = !text_pause;
@@ -508,6 +522,9 @@ void handle_cli(BLEUart *ble) {
             case 2:
               number_color2 = ltemp;
               break;
+            case 3:
+              marker_color = ltemp;
+              break;
             default:
               text_color = ltemp;
           }
@@ -529,12 +546,16 @@ void handle_cli(BLEUart *ble) {
       ptr++;
       number_enabled = true;
       button_pending = 0;
+      marker = 0;
       break;
     case '1':
       number_color_pending = 1;
       break;
     case '2':
       number_color_pending = 2;
+      break;
+    case '3':
+      number_color_pending = 3;
       break;
     default:
       help(ble);
@@ -559,17 +580,10 @@ void show_text() {
 void clear_numbers() {
   glasses.left_ring.fill(0);
   glasses.right_ring.fill(0);
-
-  digit(' ', 1, 0x00000000);
-  digit(' ', 2, 0x00000000);
-  digit(' ', 3, 0x00000000);
-  digit(' ', 4, 0x00000000);
+  glasses.fill(0);  
 }
 
 void show_numbers() {
-  //glasses.left_ring.fill(0);
-  //glasses.right_ring.fill(0);
-
   rgb_apply_level(number_color1);
   digit(number_value_1[0], 1, glasses.color565(glasses.Color(r, g, b)));
   digit(number_value_1[1], 2, glasses.color565(glasses.Color(r, g, b)));
@@ -589,6 +603,23 @@ void show_numbers() {
   //glasses.drawPixel(8, 2, number_color1);
   //glasses.drawPixel(9, 2, number_color2);
 
+}
+
+void show_markers() {
+  if (marker == 1) {
+    rgb_apply_level(marker_color);
+    glasses.left_ring.setPixelColor(18, glasses.color565(glasses.Color(r, g, b)));
+    glasses.left_ring.setPixelColor(19, glasses.color565(glasses.Color(r, g, b)));
+    // possible middle dash
+    //glasses.drawPixel(8, 2, number_color1);
+  }
+  if (marker == 2) {
+    rgb_apply_level(marker_color);
+    glasses.right_ring.setPixelColor(5, glasses.color565(glasses.Color(r, g, b)));
+    glasses.right_ring.setPixelColor(6, glasses.color565(glasses.Color(r, g, b)));
+    // possible middle dash
+    //glasses.drawPixel(9, 2, number_color2);
+  }
 }
 
 
@@ -699,8 +730,6 @@ void digit(char value, int slot, int32_t pixel_color) {
 }
 
 
-
-// TODO mark possession
 
 // reset
 // battery
