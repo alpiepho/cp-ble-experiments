@@ -488,12 +488,13 @@ void handle_cli(BLEUart *ble) {
       ptr++;
       if (*ptr == ' ') {
         ptr++;
-      if (*ptr) {
-        strncpy(message, ptr, 50);
-        ptr = message;
-        while (*ptr) {
-          *ptr = toupper((unsigned char) *ptr);
-          ptr++;
+        if (*ptr) {
+          strncpy(message, ptr, 50);
+          ptr = message;
+          while (*ptr) {
+            *ptr = toupper((unsigned char) *ptr);
+            ptr++;
+          }
         }
       }
       button_pending = 0;
